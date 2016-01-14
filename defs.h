@@ -90,6 +90,10 @@ int             mpbcpu(void);
 void            mpinit(void);
 void            mpstartthem(void);
 
+// mouse.c
+void            mouseinit(void);
+void            mouseintr(void);
+
 // picirq.c
 void            picenable(int);
 void            picinit(void);
