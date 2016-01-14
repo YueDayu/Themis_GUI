@@ -1,6 +1,7 @@
 #include "asm.h"
 #include "memlayout.h"
 #include "mmu.h"
+#include "gui_base.h"
 
 # Start the first CPU: switch to 32-bit protected mode, jump into C.
 # The BIOS loads this code from the first sector of the hard disk into
@@ -11,6 +12,17 @@
 .globl start
 start:
   cli                         # BIOS enabled interrupts; disable
+
+  movw    $0x4f02,%ax
+  movw    $0x4115,%bx
+  int     $0x10
+
+  movw    $GUI_BUF,%bx
+  movw    %bx, %es
+  movw    $0x0000,%di
+  movw    $0x4f01,%ax
+  movw    $0x4115,%cx
+  int     $0x10
 
   # Zero data segment registers DS, ES, and SS.
   xorw    %ax,%ax             # Set %ax to zero
