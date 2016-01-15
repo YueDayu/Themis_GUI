@@ -13,10 +13,10 @@
 
 #define static_assert(a, b) do { switch (0) case 0: case (a): ; } while (0)
 
-int nblocks = (995-LOGSIZE);
+int nblocks = (20446-LOGSIZE);
 int nlog = LOGSIZE;
 int ninodes = 200;
-int size = 1024;
+int size = 20480;
 
 int fsfd;
 struct superblock sb;
@@ -235,15 +235,30 @@ balloc(int used)
 {
   uchar buf[512];
   int i;
+  int j = 0;
+  int temp;
 
   printf("balloc: first %d blocks have been allocated\n", used);
-  assert(used < 512*8);
-  bzero(buf, 512);
-  for(i = 0; i < used; i++){
-    buf[i/8] = buf[i/8] | (0x1 << (i%8));
+  //assert(used < 512*8);
+  while(used > 0)
+  {
+    bzero(buf, 512);
+    if (used > 4096)
+    {
+      temp = 4096;
+    }
+    else
+    {
+      temp = used;
+    }
+    for(i = 0; i < temp; i++){
+      buf[i/8] = buf[i/8] | (0x1 << (i%8));
+    }
+    used -= 4096;
+    printf("balloc: write bitmap block at sector %zu\n", ninodes/IPB + 3 + j);
+    wsect(ninodes / IPB + 3 + j, buf);
+    j++;
   }
-  printf("balloc: write bitmap block at sector %zu\n", ninodes/IPB + 3);
-  wsect(ninodes / IPB + 3, buf);
 }
 
 #define min(a, b) ((a) < (b) ? (a) : (b))
@@ -256,6 +271,7 @@ iappend(uint inum, void *xp, int n)
   struct dinode din;
   char buf[512];
   uint indirect[NINDIRECT];
+  uint addr;
   uint x;
 
   rinode(inum, &din);
@@ -271,19 +287,39 @@ iappend(uint inum, void *xp, int n)
       }
       x = xint(din.addrs[fbn]);
     } else {
-      if(xint(din.addrs[NDIRECT]) == 0){
-        // printf("allocate indirect block\n");
-        din.addrs[NDIRECT] = xint(freeblock++);
-        usedblocks++;
+      if(fbn < NDIRECT + NINDIRECT){
+        if(xint(din.addrs[NDIRECT]) == 0){
+          // printf("allocate indirect block\n");
+          din.addrs[NDIRECT] = xint(freeblock++);
+          usedblocks++;
+        }
+        // printf("read indirect block\n");
+        rsect(xint(din.addrs[NDIRECT]), (char*)indirect);
+        if(indirect[fbn - NDIRECT] == 0){
+          indirect[fbn - NDIRECT] = xint(freeblock++);
+          usedblocks++;
+          wsect(xint(din.addrs[NDIRECT]), (char*)indirect);
+        }
+        x = xint(indirect[fbn-NDIRECT]);
+      } else {
+        if(xint(din.addrs[NDIRECT + 1]) == 0){
+          din.addrs[NDIRECT + 1] = xint(freeblock++);
+          usedblocks++;
+        }
+        rsect(xint(din.addrs[NDIRECT + 1]), (char*)indirect);
+        if((addr = indirect[(fbn - NDIRECT - NINDIRECT) / NINDIRECT]) == 0){
+          indirect[(fbn - NDIRECT - NINDIRECT) / NINDIRECT] = addr = xint(freeblock++);
+          usedblocks++;
+          wsect(xint(din.addrs[NDIRECT + 1]), (char*)indirect);
+        }
+        rsect(xint(addr), (char*)indirect);
+        if(indirect[(fbn - NDIRECT - NINDIRECT) % NINDIRECT] == 0){
+          indirect[(fbn - NDIRECT - NINDIRECT) % NINDIRECT] = xint(freeblock++);
+          usedblocks++;
+          wsect(xint(addr), (char*)indirect);
+        }
+        x = xint(indirect[(fbn - NDIRECT - NINDIRECT) % NINDIRECT]);
       }
-      // printf("read indirect block\n");
-      rsect(xint(din.addrs[NDIRECT]), (char*)indirect);
-      if(indirect[fbn - NDIRECT] == 0){
-        indirect[fbn - NDIRECT] = xint(freeblock++);
-        usedblocks++;
-        wsect(xint(din.addrs[NDIRECT]), (char*)indirect);
-      }
-      x = xint(indirect[fbn-NDIRECT]);
     }
     n1 = min(n, (fbn + 1) * 512 - off);
     rsect(x, buf);

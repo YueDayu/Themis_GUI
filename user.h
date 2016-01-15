@@ -1,5 +1,6 @@
 struct stat;
 struct rtcdate;
+struct RGBA;
 
 // system calls
 int fork(void);
@@ -23,6 +24,7 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+void hello(struct RGBA *, int, int);
 
 // ulib.c
 int stat(char*, struct stat*);
@@ -37,3 +39,6 @@ void* memset(void*, int, uint);
 void* malloc(uint);
 void free(void*);
 int atoi(const char*);
+
+// bitmap.c
+int readBitmapFile(char *, struct RGBA *, int *, int *);

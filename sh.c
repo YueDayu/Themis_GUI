@@ -1,6 +1,7 @@
 // Shell.
 
 #include "types.h"
+#include "color.h"
 #include "user.h"
 #include "fcntl.h"
 
@@ -146,6 +147,13 @@ main(void)
 {
   static char buf[100];
   int fd;
+
+  RGBA image[400];
+  int h, w;
+  int res = readBitmapFile("cross.bmp", image, &h, &w);
+  printf(1, "res: %d\n", res);
+
+  hello(image, h, w);
   
   // Assumes three file descriptors open.
   while((fd = open("console", O_RDWR)) >= 0){

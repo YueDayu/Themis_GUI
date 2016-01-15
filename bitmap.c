@@ -38,8 +38,8 @@ int readBitmapFile(char *fileName, RGBA *result, int *height, int *width) {
         } else {
             int j = 0;
             for (j = 0; j < column; j++) {
-                read(bmpFile, buf + i * rowBytes + j * sizeof(RGBA), 3);
-                *(buf + i * rowBytes + j * sizeof(RGBA)) = 0xFF;
+                *(buf + i * column * 4 + j * sizeof(RGBA)) = 255;
+                read(bmpFile, buf + i * column * 4 + j * sizeof(RGBA) + 1, 3);
             }
         }
         if (rowBytes % 4 > 0) {
