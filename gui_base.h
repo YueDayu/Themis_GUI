@@ -1,43 +1,28 @@
 #define GUI_BUF 0x9000
-#define SCREEN_WIDTH 800
-#define SCREEN_HEIGHT 600
 
 #ifndef __ASSEMBLER__
 
-typedef struct GUI_MODE_INFO {
-    unsigned short ModeAttributes;
-    unsigned char WinAAttributes;
-    unsigned char WinBAttributes;
-    unsigned short WinGranularity;
-    unsigned short WinSize;
-    unsigned short WinASegment;
-    unsigned short WinBSegment;
-    unsigned long WinFuncPtr;
-    unsigned short BytesPerScanLine;
-    unsigned short XResolution;
-    unsigned short YResolution;
-    unsigned char XCharSize;
-    unsigned char YCharSize;
-    unsigned char NumberOfPlanes;
-    unsigned char BitsPerPixel;
-    unsigned char NumberOfBanks;
-    unsigned char MemoryModel;
-    unsigned char BankSize;
-    unsigned char NumberOfImagePages;
-    unsigned char Reserved_page;
-    unsigned char RedMaskSize;
-    unsigned char RedMaskPos;
-    unsigned char GreenMaskSize;
-    unsigned char GreenMaskPos;
-    unsigned char BlueMaskSize;
-    unsigned char BlueMaskPos;
-    unsigned char ReservedMaskSize;
-    unsigned char ReservedMaskPos;
-    unsigned char DirectColorModeInfo;
-    unsigned long PhysBasePtr;
-    unsigned long OffScreenMemOffset;
-    unsigned short OffScreenMemSize;
-    unsigned char Reserved[206];
-} GUI_MODE_INFO;
+ushort SCREEN_WIDTH;
+ushort SCREEN_HEIGHT;
+int screen_size;
+
+// 24 bit RGB. used in GUI Utility
+typedef struct RGB {
+    unsigned char B;
+    unsigned char G;
+    unsigned char R;
+} RGB;
+
+// 32 bit RGBA. used above GUI Utility
+typedef struct RGBA {
+    unsigned char A;
+    unsigned char B;
+    unsigned char G;
+    unsigned char R;
+} RGBA;
+
+RGB *screen = 0;
+RGB *screen_buf1 = 0;
+RGB *screen_buf2 = 0;
 
 #endif

@@ -15,7 +15,6 @@ struct RGBA;
 void            initGUI(void);
 int             drawCharacter(struct RGB*, int, int, char, struct RGBA);
 void            drawString(struct RGB*, int, int, char *, struct RGBA);
-void            sayHello();
 
 // bio.c
 void            binit(void);

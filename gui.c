@@ -7,46 +7,25 @@
 #include "x86.h"
 #include "spinlock.h"
 #include "gui_base.h"
-#include "color.h"
 #include "character.h"
 
-GUI_MODE_INFO GUI_INFO;
-RGB *screen, *screen_buf1, *screen_buf2;
 struct spinlock gui_lock;
 
-void drawPointAlpha(RGB* color, RGBA origin);
-
 void initGUI() {
-    uint GraphicMem=KERNBASE+0x1028;
-    uint baseAdd=*((uint*)GraphicMem);
-    uchar *base=(uchar*)baseAdd;
-    cprintf("Bits per pixel: %x\n",*((uchar*)(KERNBASE+0x1019)));
-    screen = (RGB*)base;
-    RGB *b = screen;
-    uint x,y;
-    for (x=0;x<SCREEN_WIDTH;x++)
-        for (y=0;y<SCREEN_HEIGHT;y++)
-        {
-            b->B=0xFF;
-            b->G=0;
-            b->R=0;
-            b++;
-        }
+    uint GraphicMem = KERNBASE + 0x1028;
+    uint baseAdd = *((uint*)GraphicMem);
+    screen = (RGB*)baseAdd;
+    SCREEN_WIDTH = *((ushort*)(KERNBASE + 0x1012));
+    SCREEN_HEIGHT = *((ushort*)(KERNBASE + 0x1014));
+    screen_size = (SCREEN_WIDTH * SCREEN_HEIGHT) * 3;
+    screen_buf1 = (RGB*)(baseAdd + screen_size);
+    screen_buf2 = (RGB*)(baseAdd + screen_size * 2);
+    initlock(&gui_lock, "gui");
 
-//    GUI_INFO = *((GUI_MODE_INFO *)(GUI_BUF << 4));
-//    screen = (RGB *)GUI_INFO.PhysBasePtr;
-//    screen_buf1 = (RGB *)(GUI_INFO.PhysBasePtr + 0x15f900);
-//    screen_buf2 = (RGB *)(GUI_INFO.PhysBasePtr + 0x2bf200);
-//    initlock(&gui_lock, "gui");
-}
-
-void sayHello() {
-    RGBA color;
-    color.R = 255;
-    color.A = 255;
-    color.G = 0;
-    color.B = 0;
-    drawString(screen, 100, 100, "Hello World", color);
+    cprintf("@Screen Width:   %d\n", SCREEN_WIDTH);
+    cprintf("@Screen Height:  %d\n", SCREEN_HEIGHT);
+    cprintf("@Bits per pixel: %d\n",*((uchar*)(KERNBASE+0x1019)));
+    cprintf("@Video card drivers initialized successfully.\n");
 }
 
 void drawPoint(RGB* color, RGB origin) {

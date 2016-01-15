@@ -35,7 +35,6 @@ main(void)
   ideinit();       // disk
   mouseinit();     // mouse
   initGUI();
-  sayHello();
   if(!ismp)
     timerinit();   // uniprocessor timer
   startothers();   // start other processors
