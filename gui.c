@@ -8,6 +8,7 @@
 #include "spinlock.h"
 #include "gui_base.h"
 #include "character.h"
+#include "bitmap.h"
 
 struct spinlock gui_lock;
 
@@ -59,8 +60,14 @@ int drawCharacter(RGB *buf, int x, int y, char ch, RGBA color) {
         return -1;
     }
     for (i = 0; i < CHARACTER_HEIGHT; i++) {
+        if (y + i > SCREEN_HEIGHT) {
+            break;
+        }
         for (j = 0; j < CHARACTER_WIDTH; j++) {
             if (character[ord][i][j] == 1) {
+                if (x + j = SCREEN_WIDTH) {
+                    break;
+                }
                 t = buf + (y + i) * SCREEN_WIDTH + x + j;
                 drawPointAlpha(t, color);
             }
