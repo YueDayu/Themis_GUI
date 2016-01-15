@@ -1,7 +1,6 @@
 #include "asm.h"
 #include "memlayout.h"
 #include "mmu.h"
-#include "gui_base.h"
 
 # Start the first CPU: switch to 32-bit protected mode, jump into C.
 # The BIOS loads this code from the first sector of the hard disk into
@@ -13,24 +12,13 @@
 start:
   cli                         # BIOS enabled interrupts; disable
 
-  movw    $0x4f02,%ax
-  movw    $0x4115,%bx
-  int     $0x10
-
-  movw    $GUI_BUF,%bx
-  movw    %bx, %es
-  movw    $0x0000,%di
-  movw    $0x4f01,%ax
-  movw    $0x4115,%cx
-  int     $0x10
-
   # Zero data segment registers DS, ES, and SS.
   xorw    %ax,%ax             # Set %ax to zero
   movw    %ax,%ds             # -> Data Segment
   movw    %ax,%es             # -> Extra Segment
   movw    %ax,%ss             # -> Stack Segment
 
-  # Physical address line A20 is tied to zero so that the first PCs 
+  # Physical address line A20 is tied to zero so that the first PCs
   # with 2 MB would run software that assumed 1 MB.  Undo that.
 seta20.1:
   inb     $0x64,%al               # Wait for not busy
@@ -47,6 +35,25 @@ seta20.2:
 
   movb    $0xdf,%al               # 0xdf -> port 0x60
   outb    %al,$0x60
+
+setupsvga:
+#getsvgamode:
+  #movb   $0x4f,%ah
+  #movb   $0x00,%al
+  #movw   $0x7E00,%di
+  #int    $0x10
+
+  movb    $0x4f,%ah
+  movb    $0x01,%al
+  movw    $0x4115,%cx
+  movw    $0x1000,%di
+  int     $0x10
+#setsvgamode:
+  movb    $0x4f,%ah
+  movb    $0x02,%al
+  movw    $0x4115,%bx
+  int     $0x10
+
 
   # Switch from real to protected mode.  Use a bootstrap GDT that makes
   # virtual addresses map directly to physical addresses so that the
@@ -97,4 +104,3 @@ gdt:
 gdtdesc:
   .word   (gdtdesc - gdt - 1)             # sizeof(gdt) - 1
   .long   gdt                             # address gdt
-

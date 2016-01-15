@@ -17,25 +17,36 @@ struct spinlock gui_lock;
 void drawPointAlpha(RGB* color, RGBA origin);
 
 void initGUI() {
-    GUI_INFO = *((GUI_MODE_INFO *)(GUI_BUF << 4));
-    screen = (RGB *)GUI_INFO.PhysBasePtr;
-    screen_buf1 = (RGB *)(GUI_INFO.PhysBasePtr + 0x15f900);
-    screen_buf2 = (RGB *)(GUI_INFO.PhysBasePtr + 0x2bf200);
-    initlock(&gui_lock, "gui");
+    uint GraphicMem=KERNBASE+0x1028;
+    uint baseAdd=*((uint*)GraphicMem);
+    uchar *base=(uchar*)baseAdd;
+    cprintf("Bits per pixel: %x\n",*((uchar*)(KERNBASE+0x1019)));
+    screen = (RGB*)base;
+    RGB *b = screen;
+    uint x,y;
+    for (x=0;x<SCREEN_WIDTH;x++)
+        for (y=0;y<SCREEN_HEIGHT;y++)
+        {
+            b->B=0xFF;
+            b->G=0;
+            b->R=0;
+            b++;
+        }
+
+//    GUI_INFO = *((GUI_MODE_INFO *)(GUI_BUF << 4));
+//    screen = (RGB *)GUI_INFO.PhysBasePtr;
+//    screen_buf1 = (RGB *)(GUI_INFO.PhysBasePtr + 0x15f900);
+//    screen_buf2 = (RGB *)(GUI_INFO.PhysBasePtr + 0x2bf200);
+//    initlock(&gui_lock, "gui");
 }
 
 void sayHello() {
     RGBA color;
-    color.A = 255;
     color.R = 255;
+    color.A = 255;
     color.G = 0;
     color.B = 0;
-    drawCharacter(screen, 100, 100, 'a', color);
-    cprintf("%d\n", proc);
-    if (proc == 0)
-        switchkvm();
-    else
-        switchuvm(proc);
+    drawString(screen, 100, 100, "Hello World", color);
 }
 
 void drawPoint(RGB* color, RGB origin) {
