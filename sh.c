@@ -14,6 +14,8 @@
 
 #define MAXARGS 10
 
+RGBA image[500 * 500];
+
 struct cmd {
   int type;
 };
@@ -147,13 +149,7 @@ main(void)
 {
   static char buf[100];
   int fd;
-
-  RGBA image[400];
   int h, w;
-  int res = readBitmapFile("cross.bmp", image, &h, &w);
-  printf(1, "res: %d\n", res);
-
-  hello(image, h, w);
   
   // Assumes three file descriptors open.
   while((fd = open("console", O_RDWR)) >= 0){
@@ -162,7 +158,14 @@ main(void)
       break;
     }
   }
-  
+
+  int res = readBitmapFile("exec.bmp", image, &h, &w);
+  printf(1, "res: %d\n", res);
+
+  hello(image, h, w);
+
+  while(1) ;
+
   // Read and run input commands.
   while(getcmd(buf, sizeof(buf)) >= 0){
     if(buf[0] == 'c' && buf[1] == 'd' && buf[2] == ' '){

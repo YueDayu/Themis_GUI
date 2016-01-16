@@ -15,10 +15,10 @@ typedef struct RGB {
 
 // 32 bit RGBA. used above GUI Utility
 typedef struct RGBA {
-    unsigned char A;
     unsigned char B;
     unsigned char G;
     unsigned char R;
+    unsigned char A;
 } RGBA;
 
 RGB *screen = 0;

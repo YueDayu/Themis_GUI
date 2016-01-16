@@ -1,6 +1,7 @@
 struct stat;
 struct rtcdate;
 struct RGBA;
+struct RGB;
 
 // system calls
 int fork(void);
@@ -42,3 +43,4 @@ int atoi(const char*);
 
 // bitmap.c
 int readBitmapFile(char *, struct RGBA *, int *, int *);
+int read24BitmapFile(char *, struct RGB *, int *, int *);

@@ -38,10 +38,40 @@ int readBitmapFile(char *fileName, RGBA *result, int *height, int *width) {
         } else {
             int j = 0;
             for (j = 0; j < column; j++) {
-                *(buf + i * column * 4 + j * sizeof(RGBA)) = 255;
-                read(bmpFile, buf + i * column * 4 + j * sizeof(RGBA) + 1, 3);
+                read(bmpFile, buf + i * column * 4 + j * sizeof(RGBA), 3);
+                *(buf + i * column * 4 + j * sizeof(RGBA) + 3) = 255;
             }
         }
+        if (rowBytes % 4 > 0) {
+            read(bmpFile, tmpBytes, 4 - (rowBytes % 4));
+        }
+    }
+
+    close(bmpFile);
+    return 0;
+}
+
+int read24BitmapFile(char *fileName, RGB *result, int *height, int *width) {
+    int i;
+    int bmpFile = open(fileName, 0);
+    if (bmpFile < 0) {
+        return -1;
+    }
+
+    BITMAP_FILE_HEADER bmpFileHeader;
+    BITMAP_INFO_HEADER bmpInfoHeader;
+
+    readBitmapHeader(bmpFile, &bmpFileHeader, &bmpInfoHeader);
+    *width = bmpInfoHeader.biWidth;
+    *height = bmpInfoHeader.biHeight;
+    int column = bmpInfoHeader.biWidth;
+    int row = bmpInfoHeader.biHeight;
+    printf(1, "%d %d\n", column, row);
+    char tmpBytes[3];
+    int rowBytes = column * 3;
+    char *buf = (char *) result;
+    for (i = 0; i < row; i++) {
+        read(bmpFile, buf + i * rowBytes, rowBytes);
         if (rowBytes % 4 > 0) {
             read(bmpFile, tmpBytes, 4 - (rowBytes % 4));
         }
