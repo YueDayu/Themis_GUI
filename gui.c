@@ -109,24 +109,39 @@ void drawImage(RGB *buf, RGBA *img, int x, int y, int width, int height) {
                 break;
             }
             t = buf + (y + i) * SCREEN_WIDTH + x + j;
-            o = img + i * width + j;
+            o = img + (height - i) * width + j;
             drawPointAlpha(t, *o);
         }
     }
 }
 
+void draw24Image(RGB *buf, RGB *img, int x, int y, int width, int height) {
+    int i;
+    RGB *t;
+    RGB *o;
+    int max_line = (SCREEN_WIDTH - x) < width ? (SCREEN_WIDTH - x) : width;
+    for (i = 0; i < height; i++) {
+        if (y + i > SCREEN_HEIGHT || y + i < 0) {
+            break;
+        }
+        t = buf + (y + i) * SCREEN_WIDTH + x;
+        o = img + (height - i) * width;
+        memmove(t, o, max_line * 3);
+    }
+}
+
 void sys_hello() {
-    RGBA *image;
+    RGB *image;
     int i;
     int h, w;
     argint(0, &i);
     argint(1, &h);
     argint(2, &w);
     cprintf("size: %d * %d", h, w);
-    image = (RGBA *)i;
+    image = (RGB *)i;
     RGBA color;
-    color.A = 255;
+    color.A = 200;
     color.G = 255;
+    draw24Image(screen, image, 0, 0, w, h);
     drawString(screen, 100, 200, "Hello World!", color);
-    drawImage(screen, image, 100, 100, w, h);
 }

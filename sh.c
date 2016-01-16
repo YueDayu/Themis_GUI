@@ -14,7 +14,7 @@
 
 #define MAXARGS 10
 
-RGBA image[500 * 500];
+RGB image[800 * 600];
 
 struct cmd {
   int type;
@@ -159,7 +159,7 @@ main(void)
     }
   }
 
-  int res = readBitmapFile("exec.bmp", image, &h, &w);
+  int res = read24BitmapFile("desktop.bmp", image, &h, &w);
   printf(1, "res: %d\n", res);
 
   hello(image, h, w);

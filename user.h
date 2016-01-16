@@ -25,7 +25,7 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
-void hello(struct RGBA *, int, int);
+void hello(struct RGB *, int, int);
 
 // ulib.c
 int stat(char*, struct stat*);

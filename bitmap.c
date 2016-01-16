@@ -66,7 +66,6 @@ int read24BitmapFile(char *fileName, RGB *result, int *height, int *width) {
     *height = bmpInfoHeader.biHeight;
     int column = bmpInfoHeader.biWidth;
     int row = bmpInfoHeader.biHeight;
-    printf(1, "%d %d\n", column, row);
     char tmpBytes[3];
     int rowBytes = column * 3;
     char *buf = (char *) result;
