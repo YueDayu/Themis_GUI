@@ -9,44 +9,51 @@
 #include "gui_base.h"
 #include "character.h"
 #include "bitmap.h"
+#include "mouse_shape.h"
 
 struct spinlock gui_lock;
 
 void initGUI() {
     uint GraphicMem = KERNBASE + 0x1028;
-    uint baseAdd = *((uint*)GraphicMem);
-    screen = (RGB*)baseAdd;
-    SCREEN_WIDTH = *((ushort*)(KERNBASE + 0x1012));
-    SCREEN_HEIGHT = *((ushort*)(KERNBASE + 0x1014));
+    uint baseAdd = *((uint *) GraphicMem);
+    screen = (RGB *) baseAdd;
+    SCREEN_WIDTH = *((ushort *) (KERNBASE + 0x1012));
+    SCREEN_HEIGHT = *((ushort *) (KERNBASE + 0x1014));
     screen_size = (SCREEN_WIDTH * SCREEN_HEIGHT) * 3;
-    screen_buf1 = (RGB*)(baseAdd + screen_size);
-    screen_buf2 = (RGB*)(baseAdd + screen_size * 2);
+    screen_buf1 = (RGB *) (baseAdd + screen_size);
+    screen_buf2 = (RGB *) (baseAdd + screen_size * 2);
     initlock(&gui_lock, "gui");
 
-    uint x,y;
-    uchar *b = (uchar *)screen;
-    for (x=0;x<SCREEN_WIDTH;x++)
-        for (y=0;y<SCREEN_HEIGHT;y++)
-        {
-            b[0]=0xFF;
-            b[1]=0x00;
-            b[2]=0x00;
-            b+=3;
+    mouse_color[0].G = 0;
+    mouse_color[0].B = 0;
+    mouse_color[0].R = 0;
+    mouse_color[1].G = 200;
+    mouse_color[1].B = 200;
+    mouse_color[1].R = 200;
+
+    uint x, y;
+    uchar *b = (uchar *) screen;
+    for (x = 0; x < SCREEN_WIDTH; x++)
+        for (y = 0; y < SCREEN_HEIGHT; y++) {
+            b[0] = 0xFF;
+            b[1] = 0x00;
+            b[2] = 0x00;
+            b += 3;
         }
 
     cprintf("@Screen Width:   %d\n", SCREEN_WIDTH);
     cprintf("@Screen Height:  %d\n", SCREEN_HEIGHT);
-    cprintf("@Bits per pixel: %d\n",*((uchar*)(KERNBASE+0x1019)));
+    cprintf("@Bits per pixel: %d\n", *((uchar *) (KERNBASE + 0x1019)));
     cprintf("@Video card drivers initialized successfully.\n");
 }
 
-void drawPoint(RGB* color, RGB origin) {
+void drawPoint(RGB *color, RGB origin) {
     color->R = origin.R;
     color->G = origin.G;
     color->B = origin.B;
 }
 
-void drawPointAlpha(RGB* color, RGBA origin) {
+void drawPointAlpha(RGB *color, RGBA origin) {
     float alpha;
     if (origin.A == 255) {
         color->R = origin.R;
@@ -57,7 +64,7 @@ void drawPointAlpha(RGB* color, RGBA origin) {
     if (origin.A == 0) {
         return;
     }
-    alpha = (float)origin.A / 255;
+    alpha = (float) origin.A / 255;
     color->R = color->R * (1 - alpha) + origin.R * alpha;
     color->G = color->G * (1 - alpha) + origin.G * alpha;
     color->B = color->B * (1 - alpha) + origin.B * alpha;
@@ -130,6 +137,26 @@ void draw24Image(RGB *buf, RGB *img, int x, int y, int width, int height) {
     }
 }
 
+void drawMouse(RGB *buf, int mode, int x, int y) {
+    int i, j;
+    RGB *t;
+    for (i = 0; i < MOUSE_HEIGHT; i++) {
+        if (y + i > SCREEN_HEIGHT || y + i < 0) {
+            break;
+        }
+        for (j = 0; j < MOUSE_WIDTH; j++) {
+            if (x + j > SCREEN_WIDTH || x + j < 0) {
+                break;
+            }
+            uchar temp = mouse_pointer[mode][i][j];
+            if (temp) {
+                t = buf + (y + i) * SCREEN_WIDTH + x + j;
+                drawPoint(t, mouse_color[temp - 1]);
+            }
+        }
+    }
+}
+
 void sys_hello() {
     RGB *image;
     int i;
@@ -138,10 +165,12 @@ void sys_hello() {
     argint(1, &h);
     argint(2, &w);
     cprintf("size: %d * %d", h, w);
-    image = (RGB *)i;
+    image = (RGB *) i;
     RGBA color;
     color.A = 200;
     color.G = 255;
     draw24Image(screen, image, 0, 0, w, h);
     drawString(screen, 100, 200, "Hello World!", color);
+    drawMouse(screen, 0, 100, 100);
+    drawMouse(screen, 1, 100, 120);
 }
