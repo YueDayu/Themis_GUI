@@ -31,7 +31,6 @@ kbdgetc(void)
     data = (shift & E0ESC ? data : data & 0x7F);
     shift &= ~(shiftcode[data] | E0ESC);
     c = normalmap[data];
-    cprintf("(%x) ", data);
     msg.msg_type = M_KEY_UP;
     msg.params[0] = c;
     msg.params[1] = shift;

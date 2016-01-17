@@ -30,6 +30,7 @@ OBJS = \
 	msg.o\
 	mouse.o\
 	gui.o\
+	window_manager.o\
 
 # Cross-compiling (e.g., on Mac OS X)
 # TOOLPREFIX = i386-jos-elf

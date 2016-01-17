@@ -4,7 +4,7 @@
 
 int handleMessage(message* msg)
 {
-	if (msg->msg_type == M_KEY_UP)
+/*	if (msg->msg_type == M_KEY_UP)
 	{
 		cprintf("KEY UP: %x, %x\n", msg->params[0], msg->params[1]);
 	}
@@ -23,7 +23,10 @@ int handleMessage(message* msg)
 	else if (msg->msg_type == M_MOUSE_UP)
 	{
 		cprintf("MOUSE UP: btn=%x\n", msg->params[0]);
-	}
+	}*/
+	
+	wmHandleMessage(msg);
+	
 	return 0;
 }
 

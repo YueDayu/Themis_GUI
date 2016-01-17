@@ -21,8 +21,5 @@ typedef struct message {
 	int params[10];
 } message;
 
-extern int handleMessage(message*);
-
-
 #endif
 

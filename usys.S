@@ -30,3 +30,6 @@ SYSCALL(sbrk)
 SYSCALL(sleep)
 SYSCALL(uptime)
 SYSCALL(hello)
+SYSCALL(createwindow)
+SYSCALL(getmessage)
+

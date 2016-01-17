@@ -2,6 +2,7 @@ struct stat;
 struct rtcdate;
 struct RGBA;
 struct RGB;
+struct message;
 
 // system calls
 int fork(void);
@@ -44,3 +45,7 @@ int atoi(const char*);
 // bitmap.c
 int readBitmapFile(char *, struct RGBA *, int *, int *);
 int read24BitmapFile(char *, struct RGB *, int *, int *);
+
+// window_manager.c
+int createwindow(int, int, const char *);
+int getmessage(int, struct message *);

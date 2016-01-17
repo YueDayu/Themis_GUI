@@ -10,11 +10,23 @@ struct stat;
 struct superblock;
 struct RGB;
 struct RGBA;
+struct message;
+
+//window_manager.c
+void            wmInit(void);
+void            wmHandleMessage(struct message*);
+
+//msg.c
+int             handleMessage(struct message*);
 
 // gui.c
+extern ushort   SCREEN_WIDTH;
+extern ushort   SCREEN_HEIGHT;
+extern struct RGB* screen;
 void            initGUI(void);
 int             drawCharacter(struct RGB*, int, int, char, struct RGBA);
 void            drawString(struct RGB*, int, int, char *, struct RGBA);
+void            drawMouse(struct RGB*, int, int, int);
 
 // bio.c
 void            binit(void);

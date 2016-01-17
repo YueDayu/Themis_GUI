@@ -45,6 +45,8 @@ void initGUI() {
     cprintf("@Screen Height:  %d\n", SCREEN_HEIGHT);
     cprintf("@Bits per pixel: %d\n", *((uchar *) (KERNBASE + 0x1019)));
     cprintf("@Video card drivers initialized successfully.\n");
+    
+    wmInit();
 }
 
 void drawPoint(RGB *color, RGB origin) {

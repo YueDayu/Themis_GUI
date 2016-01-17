@@ -2,6 +2,7 @@
 
 #include "types.h"
 #include "color.h"
+#include "msg.h"
 #include "user.h"
 #include "fcntl.h"
 
@@ -163,8 +164,17 @@ main(void)
   printf(1, "res: %d\n", res);
 
   hello(image, h, w);
+  
+  int hwnd = createwindow(200, 300, "hello window");
+  struct message msg;
 
-  while(1) ;
+  while(1)
+  {
+  	if (getmessage(hwnd, &msg))
+  	{
+  		//printf(2, "%d %d %d\n", msg.msg_type, msg.params[0], msg.params[1]);
+  	}
+  }
 
   // Read and run input commands.
   while(getcmd(buf, sizeof(buf)) >= 0){
