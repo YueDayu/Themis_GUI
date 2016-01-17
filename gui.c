@@ -13,6 +13,10 @@
 
 struct spinlock gui_lock;
 
+RGB *screen = 0;
+RGB *screen_buf1 = 0;
+RGB *screen_buf2 = 0;
+
 void initGUI() {
     uint GraphicMem = KERNBASE + 0x1028;
     uint baseAdd = *((uint *) GraphicMem);
@@ -139,6 +143,56 @@ void draw24Image(RGB *buf, RGB *img, int x, int y, int width, int height) {
     }
 }
 
+void drawRect(RGB *buf, int x, int y, int width, int height, RGBA fill)
+{
+	int i, j;
+	RGB *t;
+	for (i = 0; i < height; i++)
+	{
+		if (y + i < 0) continue;
+		if (y + i >= SCREEN_HEIGHT) break;
+		for (j = 0; j < width; j++)
+		{
+			if (x + j < 0) continue;
+			if (x + j >= SCREEN_WIDTH) break;
+			t = buf + (y + i) * SCREEN_WIDTH + x + j;
+			drawPointAlpha(t, fill);
+		}
+	}
+}
+
+void drawRectByCoord(RGB *buf, int xmin, int ymin, int xmax, int ymax, RGBA fill)
+{
+	drawRect(buf, xmin, ymin, xmax - xmin, ymax - ymin, fill);
+}
+
+void clearRect(RGB *buf, RGB *temp_buf, int x, int y, int width, int height)
+{
+	int i, j, offset;
+	RGB *t, *o;
+	for (i = 0; i < height; i++)
+	{
+		if (y + i < 0) continue;
+		if (y + i >= SCREEN_HEIGHT) break;
+		for (j = 0; j < width; j++)
+		{
+			if (x + j < 0) continue;
+			if (x + j >= SCREEN_WIDTH) break;
+			offset = (y + i) * SCREEN_WIDTH + x + j;
+			t = buf + offset;
+			o = temp_buf + offset;
+			drawPoint(t, *o);
+		}
+	}
+}
+
+
+void clearRectByCoord(RGB *buf, RGB *temp_buf, int xmin, int ymin, int xmax, int ymax)
+{
+	clearRect(buf, temp_buf, xmin, ymin, xmax - xmin, ymax - ymin);
+}
+
+
 void clearMouse(RGB*, RGB*,int, int);
 
 void drawMouse(RGB *buf, int mode, int x, int y) {
@@ -188,6 +242,8 @@ void sys_hello() {
     color.A = 200;
     color.G = 255;
     draw24Image(screen_buf2, image, 0, 0, w, h);
+    draw24Image(screen_buf1, image, 0, 0, w, h);
     draw24Image(screen, image, 0, 0, w, h);
     drawString(screen, 100, 200, "Hello World!", color);
 }
+

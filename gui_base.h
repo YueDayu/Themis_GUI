@@ -2,6 +2,9 @@
 
 #ifndef __ASSEMBLER__
 
+#ifndef __GUI_BASE_H__
+#define __GUI_BASE_H__
+
 ushort SCREEN_WIDTH;
 ushort SCREEN_HEIGHT;
 int screen_size;
@@ -21,8 +24,6 @@ typedef struct RGBA {
     unsigned char A;
 } RGBA;
 
-RGB *screen = 0;
-RGB *screen_buf1 = 0;
-RGB *screen_buf2 = 0;
+#endif // GUI_BASE_H
 
 #endif

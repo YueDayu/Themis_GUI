@@ -3,6 +3,7 @@
 #include "defs.h"
 #include "msg.h"
 #include "spinlock.h"
+#include "gui_base.h"
 
 #include "window_manager.h"
 
@@ -56,7 +57,7 @@ static struct
 static struct
 {
 	float x, y;
-} wm_mouse_pos;
+} wm_mouse_pos, wm_last_mouse_pos;
 
 
 static int windowlisthead, emptyhead;
@@ -97,12 +98,50 @@ void wmInit()
 
 	wm_mouse_pos.x = SCREEN_WIDTH / 2;
 	wm_mouse_pos.y = SCREEN_HEIGHT / 2;
+	
+	wm_last_mouse_pos = wm_mouse_pos;
 
 	initlock(&wmlock, "wmlock");
 }
 
+void drawWindow(int layer, int handler)
+{
+	window *wnd = &windowlist[handler].wnd;
+    struct RGBA barcolor, wndcolor, txtcolor;
+    barcolor.R = 170; barcolor.G = 150; barcolor.B = 100; barcolor.A = 255;
+    if (layer == 2) barcolor.R = barcolor.G = barcolor.B = 140;
+    wndcolor.R = wndcolor.G = wndcolor.B = wndcolor.A = 255;
+    txtcolor = wndcolor;
+
+    struct RGB *dst;
+    if (layer == 2) dst = screen_buf2;
+    else if (layer == 1) dst = screen_buf1;
+    else dst = screen;
+    
+    drawRectByCoord(dst, wnd->titlebar.xmin, wnd->titlebar.ymin, wnd->titlebar.xmax, wnd->contents.ymax + 3, barcolor);
+    drawRectByCoord(dst, wnd->contents.xmin, wnd->contents.ymin, wnd->contents.xmax, wnd->contents.ymax, wndcolor);
+    drawString(dst, wnd->titlebar.xmin + 5, wnd->titlebar.ymin + 3, wnd->title, txtcolor);
+    
+    if (layer >= 2)
+        clearRectByCoord(screen_buf1, screen_buf2, wnd->titlebar.xmin, wnd->titlebar.ymin, wnd->titlebar.xmax, wnd->contents.ymax + 3);
+    if (layer >= 1)
+        clearRectByCoord(screen, screen_buf1, wnd->titlebar.xmin, wnd->titlebar.ymin, wnd->titlebar.xmax, wnd->contents.ymax + 3);
+        
+    //TODO fire REDRAW message to application
+}
+
 void focusWindow(int handler)
 {
+	removeFromList(&windowlisthead, handler);
+	addToListHead(&windowlisthead, handler);
+	
+	//redraw all occluded window
+	int p, q;
+	for (p = windowlisthead; p != -1; p = windowlist[p].next) q = p;
+	for (p = q; p != windowlisthead; p = windowlist[p].prev) drawWindow(2, p);
+	drawWindow(1, windowlisthead);
+	drawMouse(screen, 0, wm_mouse_pos.x, wm_mouse_pos.y);
+	
 	focus = handler;
 }
 
@@ -121,10 +160,10 @@ int createWindow(int width, int height, const char *title)
 
 	initqueue(&windowlist[idx].wnd.buf);
 	createRectBySize(&windowlist[idx].wnd.contents, 100, 100, width, height);
-	createRectBySize(&windowlist[idx].wnd.titlebar, 100, 85, width, 15);
+	createRectBySize(&windowlist[idx].wnd.titlebar, 97, 80, width + 6, 20);
 	memmove(windowlist[idx].wnd.title, title, len);
-
-	//TODO draw window
+    
+    //drawing is completed in focusWindow
 	focusWindow(idx);
 
 	release(&wmlock);
@@ -151,32 +190,48 @@ void wmHandleMessage(message *msg)
 	acquire(&wmlock);
 
 	message newmsg;
+	int p;
 	switch (msg->msg_type)
 	{
 	case M_MOUSE_MOVE:
+		wm_last_mouse_pos = wm_mouse_pos;
 		wm_mouse_pos.x += msg->params[0] * MOUSE_SPEED_X;
 		wm_mouse_pos.y += msg->params[1] * MOUSE_SPEED_Y;
 		if (wm_mouse_pos.x > SCREEN_WIDTH) wm_mouse_pos.x = SCREEN_WIDTH;
 		if (wm_mouse_pos.y > SCREEN_HEIGHT) wm_mouse_pos.y = SCREEN_HEIGHT;
 		if (wm_mouse_pos.x < 0) wm_mouse_pos.x = 0;
 		if (wm_mouse_pos.y < 0) wm_mouse_pos.y = 0;
-		//TODO redraw mouse cursor
+		//redraw mouse cursor
+		clearMouse(screen, screen_buf1, wm_last_mouse_pos.x, wm_last_mouse_pos.y);
 		drawMouse(screen, 0, wm_mouse_pos.x, wm_mouse_pos.y);
 		break;
 	case M_MOUSE_DOWN:
-		//TODO handle focus changes
-		newmsg = *msg;
-		newmsg.params[0] = wm_mouse_pos.x;
-		newmsg.params[1] = wm_mouse_pos.y;
-		newmsg.params[2] = msg->params[0];
-		dispatchMessage(focus, &newmsg);
+		//handle focus changes
+		for (p = windowlisthead; p != -1; p = windowlist[p].next)
+		{
+			if (isInRect(&windowlist[p].wnd.titlebar, wm_mouse_pos.x, wm_mouse_pos.y) ||
+			    isInRect(&windowlist[p].wnd.contents, wm_mouse_pos.x, wm_mouse_pos.y))
+			{
+			    if (p != focus) focusWindow(p);
+			    break;
+			}
+		}
+		if (isInRect(&windowlist[focus].wnd.contents, wm_mouse_pos.x, wm_mouse_pos.y))
+		{
+		    newmsg = *msg;
+		    //coordinate transformation (from screen to window)
+		    newmsg.params[0] = wm_mouse_pos.x - windowlist[focus].wnd.contents.xmin;
+		    newmsg.params[1] = wm_mouse_pos.y - windowlist[focus].wnd.contents.ymin;
+		    newmsg.params[2] = msg->params[0];
+		    dispatchMessage(focus, &newmsg);
+		}
 		break;
 	case M_MOUSE_UP:
 		//TODO
 		newmsg = *msg;
-		newmsg.params[0] = wm_mouse_pos.x;
-		newmsg.params[1] = wm_mouse_pos.y;
-		newmsg.params[2] = msg->params[0];
+	    newmsg.params[0] = wm_mouse_pos.x - windowlist[focus].wnd.contents.xmin;
+	    newmsg.params[1] = wm_mouse_pos.y - windowlist[focus].wnd.contents.ymin;
+	    newmsg.params[2] = msg->params[0];
 		dispatchMessage(focus, &newmsg);
 		break;
 	case M_KEY_DOWN:

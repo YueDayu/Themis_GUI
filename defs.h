@@ -23,10 +23,17 @@ int             handleMessage(struct message*);
 extern ushort   SCREEN_WIDTH;
 extern ushort   SCREEN_HEIGHT;
 extern struct RGB* screen;
+extern struct RGB* screen_buf1;
+extern struct RGB* screen_buf2;
 void            initGUI(void);
 int             drawCharacter(struct RGB*, int, int, char, struct RGBA);
 void            drawString(struct RGB*, int, int, char *, struct RGBA);
 void            drawMouse(struct RGB*, int, int, int);
+void            clearMouse(struct RGB*, struct RGB*,int, int);
+void            drawRect(struct RGB*, int, int, int, int, struct RGBA);
+void            clearRect(struct RGB*, struct RGB*, int, int, int, int);
+void            drawRectByCoord(struct RGB*, int, int, int, int, struct RGBA);
+void            clearRectByCoord(struct RGB*, struct RGB*, int, int, int, int);
 
 // bio.c
 void            binit(void);

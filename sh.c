@@ -165,12 +165,17 @@ main(void)
 
   hello(image, h, w);
   
-  int hwnd = createwindow(200, 300, "hello window");
+  int hwnd = createwindow(400, 300, "hello window");
+  int hwnd2 = createwindow(600, 200, "hello window 2");
   struct message msg;
 
   while(1)
   {
   	if (getmessage(hwnd, &msg))
+  	{
+  		//printf(2, "%d %d %d\n", msg.msg_type, msg.params[0], msg.params[1]);
+  	}
+  	if (getmessage(hwnd2, &msg))
   	{
   		//printf(2, "%d %d %d\n", msg.msg_type, msg.params[0], msg.params[1]);
   	}
