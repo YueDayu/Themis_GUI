@@ -45,7 +45,7 @@ void initGUI() {
     cprintf("@Screen Height:  %d\n", SCREEN_HEIGHT);
     cprintf("@Bits per pixel: %d\n", *((uchar *) (KERNBASE + 0x1019)));
     cprintf("@Video card drivers initialized successfully.\n");
-    
+
     wmInit();
 }
 
@@ -110,11 +110,11 @@ void drawImage(RGB *buf, RGBA *img, int x, int y, int width, int height) {
     RGB *t;
     RGBA *o;
     for (i = 0; i < height; i++) {
-        if (y + i > SCREEN_HEIGHT || y + i < 0) {
+        if (y + i >= SCREEN_HEIGHT || y + i < 0) {
             break;
         }
         for (j = 0; j < width; j++) {
-            if (x + j > SCREEN_WIDTH || x + j < 0) {
+            if (x + j >= SCREEN_WIDTH || x + j < 0) {
                 break;
             }
             t = buf + (y + i) * SCREEN_WIDTH + x + j;
@@ -130,7 +130,7 @@ void draw24Image(RGB *buf, RGB *img, int x, int y, int width, int height) {
     RGB *o;
     int max_line = (SCREEN_WIDTH - x) < width ? (SCREEN_WIDTH - x) : width;
     for (i = 0; i < height; i++) {
-        if (y + i > SCREEN_HEIGHT || y + i < 0) {
+        if (y + i >= SCREEN_HEIGHT || y + i < 0) {
             break;
         }
         t = buf + (y + i) * SCREEN_WIDTH + x;
@@ -139,15 +139,17 @@ void draw24Image(RGB *buf, RGB *img, int x, int y, int width, int height) {
     }
 }
 
+void clearMouse(RGB*, RGB*,int, int);
+
 void drawMouse(RGB *buf, int mode, int x, int y) {
     int i, j;
     RGB *t;
     for (i = 0; i < MOUSE_HEIGHT; i++) {
-        if (y + i > SCREEN_HEIGHT || y + i < 0) {
+        if (y + i >= SCREEN_HEIGHT || y + i < 0) {
             break;
         }
         for (j = 0; j < MOUSE_WIDTH; j++) {
-            if (x + j > SCREEN_WIDTH || x + j < 0) {
+            if (x + j >= SCREEN_WIDTH || x + j < 0) {
                 break;
             }
             uchar temp = mouse_pointer[mode][i][j];
@@ -156,6 +158,20 @@ void drawMouse(RGB *buf, int mode, int x, int y) {
                 drawPoint(t, mouse_color[temp - 1]);
             }
         }
+    }
+}
+
+void clearMouse(RGB *buf, RGB *temp_buf, int x, int y) {
+    RGB *t;
+    RGB *o;
+    int i;
+    for (i = 0; i < MOUSE_HEIGHT; i++) {
+        if (y + i >= SCREEN_HEIGHT || y + i < 0) {
+            break;
+        }
+        t = buf + (y + i) * SCREEN_WIDTH + x;
+        o = temp_buf + (y + i) * SCREEN_WIDTH + x;
+        memmove(t, o, MOUSE_WIDTH * 3);
     }
 }
 
@@ -171,8 +187,7 @@ void sys_hello() {
     RGBA color;
     color.A = 200;
     color.G = 255;
+    draw24Image(screen_buf2, image, 0, 0, w, h);
     draw24Image(screen, image, 0, 0, w, h);
     drawString(screen, 100, 200, "Hello World!", color);
-    drawMouse(screen, 0, 100, 100);
-    drawMouse(screen, 1, 100, 120);
 }

@@ -94,10 +94,10 @@ void wmInit()
 	}
 	windowlist[0].prev = -1;
 	windowlist[MAX_WINDOW_CNT-1].next = -1;
-	
-	wm_mouse_pos.x = 100;
-	wm_mouse_pos.y = 100;
-	
+
+	wm_mouse_pos.x = SCREEN_WIDTH / 2;
+	wm_mouse_pos.y = SCREEN_HEIGHT / 2;
+
 	initlock(&wmlock, "wmlock");
 }
 
@@ -112,23 +112,23 @@ int createWindow(int width, int height, const char *title)
 	if (emptyhead == -1) return -1;
 	uint len = strlen(title);
 	if (len >= MAX_TITLE_LEN) return -1;
-	
+
 	acquire(&wmlock);
-	
+
 	int idx = emptyhead;
 	removeFromList(&emptyhead, idx);
 	addToListHead(&windowlisthead, idx);
-	
+
 	initqueue(&windowlist[idx].wnd.buf);
 	createRectBySize(&windowlist[idx].wnd.contents, 100, 100, width, height);
 	createRectBySize(&windowlist[idx].wnd.titlebar, 100, 85, width, 15);
 	memmove(windowlist[idx].wnd.title, title, len);
-	
+
 	//TODO draw window
 	focusWindow(idx);
-	
+
 	release(&wmlock);
-	
+
 	return idx;
 }
 
@@ -138,8 +138,8 @@ int createDesktopWindow()
 	return 0;
 }
 
-#define MOUSE_SPEED_X 0.005f
-#define MOUSE_SPEED_Y -0.005f;
+#define MOUSE_SPEED_X 0.8f
+#define MOUSE_SPEED_Y -0.8f;
 
 void dispatchMessage(int handler, message *msg)
 {
@@ -149,7 +149,7 @@ void dispatchMessage(int handler, message *msg)
 void wmHandleMessage(message *msg)
 {
 	acquire(&wmlock);
-	
+
 	message newmsg;
 	switch (msg->msg_type)
 	{
@@ -188,7 +188,7 @@ void wmHandleMessage(message *msg)
 	default:
 		break;
 	}
-	
+
 	release(&wmlock);
 }
 
