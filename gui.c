@@ -11,7 +11,9 @@
 #include "bitmap.h"
 #include "mouse_shape.h"
 
-struct spinlock gui_lock;
+struct spinlock screen_lock;
+struct spinlock buf1_lock;
+struct spinlock buf2_lock;
 
 RGB *screen = 0;
 RGB *screen_buf1 = 0;
@@ -26,7 +28,9 @@ void initGUI() {
     screen_size = (SCREEN_WIDTH * SCREEN_HEIGHT) * 3;
     screen_buf1 = (RGB *) (baseAdd + screen_size);
     screen_buf2 = (RGB *) (baseAdd + screen_size * 2);
-    initlock(&gui_lock, "gui");
+    initlock(&screen_lock, "screen");
+    initlock(&buf1_lock, "buffer_1");
+    initlock(&buf2_lock, "buffer_2");
 
     mouse_color[0].G = 0;
     mouse_color[0].B = 0;
@@ -51,6 +55,37 @@ void initGUI() {
     cprintf("@Video card drivers initialized successfully.\n");
 
     wmInit();
+}
+
+void acquireGUILock(RGB *buf) {
+    switch (buf) {
+        case screen:
+            acquire(&screen_lock);
+            break;
+        case screen_buf1:
+            acquire(&buf1_lock);
+            break;
+        case screen_buf2:
+            acquire(&buf2_lock);
+        default:
+            break;
+    }
+}
+
+void releaseGUILock(RGB *buf) {
+    switch (buf) {
+        case screen:
+            release(&screen_lock);
+            break;
+        case screen_buf1:
+            release(&buf1_lock);
+            break;
+        case screen_buf2:
+            release(&buf2_lock);
+            break;
+        default:
+            break;
+    }
 }
 
 void drawPoint(RGB *color, RGB origin) {
@@ -83,20 +118,28 @@ int drawCharacter(RGB *buf, int x, int y, char ch, RGBA color) {
     if (ord < 0 || ord >= (CHARACTER_NUMBER - 1)) {
         return -1;
     }
+    acquireGUILock(buf);
     for (i = 0; i < CHARACTER_HEIGHT; i++) {
-        if (y + i > SCREEN_HEIGHT || y + i < 0) {
+        if (y + i > SCREEN_HEIGHT) {
             break;
+        }
+        if (y + i < 0) {
+            continue;
         }
         for (j = 0; j < CHARACTER_WIDTH; j++) {
             if (character[ord][i][j] == 1) {
-                if (x + j > SCREEN_WIDTH || x + j < 0) {
+                if (x + j > SCREEN_WIDTH) {
                     break;
+                }
+                if (x + j < 0) {
+                    continue;
                 }
                 t = buf + (y + i) * SCREEN_WIDTH + x + j;
                 drawPointAlpha(t, color);
             }
         }
     }
+    releaseGUILock(buf);
     return CHARACTER_WIDTH;
 }
 
@@ -113,19 +156,27 @@ void drawImage(RGB *buf, RGBA *img, int x, int y, int width, int height) {
     int i, j;
     RGB *t;
     RGBA *o;
+    acquireGUILock(buf);
     for (i = 0; i < height; i++) {
-        if (y + i >= SCREEN_HEIGHT || y + i < 0) {
+        if (y + i >= SCREEN_HEIGHT) {
             break;
         }
+        if (y + i < 0) {
+            continue;
+        }
         for (j = 0; j < width; j++) {
-            if (x + j >= SCREEN_WIDTH || x + j < 0) {
+            if (x + j >= SCREEN_WIDTH) {
                 break;
+            }
+            if (x + j < 0) {
+                continue;
             }
             t = buf + (y + i) * SCREEN_WIDTH + x + j;
             o = img + (height - i) * width + j;
             drawPointAlpha(t, *o);
         }
     }
+    releaseGUILock(buf);
 }
 
 void draw24Image(RGB *buf, RGB *img, int x, int y, int width, int height) {
@@ -133,20 +184,26 @@ void draw24Image(RGB *buf, RGB *img, int x, int y, int width, int height) {
     RGB *t;
     RGB *o;
     int max_line = (SCREEN_WIDTH - x) < width ? (SCREEN_WIDTH - x) : width;
+    acquireGUILock(buf);
     for (i = 0; i < height; i++) {
-        if (y + i >= SCREEN_HEIGHT || y + i < 0) {
+        if (y + i >= SCREEN_HEIGHT) {
             break;
+        }
+        if (y + i < 0) {
+            continue;
         }
         t = buf + (y + i) * SCREEN_WIDTH + x;
         o = img + (height - i) * width;
         memmove(t, o, max_line * 3);
     }
+    releaseGUILock(buf);
 }
 
 void drawRect(RGB *buf, int x, int y, int width, int height, RGBA fill)
 {
 	int i, j;
 	RGB *t;
+    acquireGUILock(buf);
 	for (i = 0; i < height; i++)
 	{
 		if (y + i < 0) continue;
@@ -159,6 +216,7 @@ void drawRect(RGB *buf, int x, int y, int width, int height, RGBA fill)
 			drawPointAlpha(t, fill);
 		}
 	}
+    releaseGUILock(buf);
 }
 
 void drawRectByCoord(RGB *buf, int xmin, int ymin, int xmax, int ymax, RGBA fill)
@@ -170,6 +228,7 @@ void clearRect(RGB *buf, RGB *temp_buf, int x, int y, int width, int height)
 {
 	int i, j, offset;
 	RGB *t, *o;
+    acquireGUILock(buf);
 	for (i = 0; i < height; i++)
 	{
 		if (y + i < 0) continue;
@@ -184,6 +243,7 @@ void clearRect(RGB *buf, RGB *temp_buf, int x, int y, int width, int height)
 			drawPoint(t, *o);
 		}
 	}
+    releaseGUILock(buf);
 }
 
 
@@ -198,13 +258,20 @@ void clearMouse(RGB*, RGB*,int, int);
 void drawMouse(RGB *buf, int mode, int x, int y) {
     int i, j;
     RGB *t;
+    acquireGUILock(buf);
     for (i = 0; i < MOUSE_HEIGHT; i++) {
-        if (y + i >= SCREEN_HEIGHT || y + i < 0) {
+        if (y + i >= SCREEN_HEIGHT) {
             break;
         }
+        if (y + i < 0) {
+            continue;
+        }
         for (j = 0; j < MOUSE_WIDTH; j++) {
-            if (x + j >= SCREEN_WIDTH || x + j < 0) {
+            if (x + j >= SCREEN_WIDTH) {
                 break;
+            }
+            if (x + j < 0) {
+                continue;
             }
             uchar temp = mouse_pointer[mode][i][j];
             if (temp) {
@@ -213,20 +280,26 @@ void drawMouse(RGB *buf, int mode, int x, int y) {
             }
         }
     }
+    releaseGUILock(buf);
 }
 
 void clearMouse(RGB *buf, RGB *temp_buf, int x, int y) {
     RGB *t;
     RGB *o;
     int i;
+    acquireGUILock(buf);
     for (i = 0; i < MOUSE_HEIGHT; i++) {
-        if (y + i >= SCREEN_HEIGHT || y + i < 0) {
+        if (y + i >= SCREEN_HEIGHT) {
             break;
+        }
+        if (y + i < 0) {
+             continue;
         }
         t = buf + (y + i) * SCREEN_WIDTH + x;
         o = temp_buf + (y + i) * SCREEN_WIDTH + x;
         memmove(t, o, MOUSE_WIDTH * 3);
     }
+    releaseGUILock(buf);
 }
 
 void sys_hello() {
