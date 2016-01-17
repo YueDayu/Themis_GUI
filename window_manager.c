@@ -62,6 +62,8 @@ static struct
 static int windowlisthead, emptyhead;
 static int focus;
 
+struct spinlock wmlock;
+
 void addToListHead(int *head, int idx)
 {
 	windowlist[idx].prev = -1;
@@ -95,6 +97,8 @@ void wmInit()
 	
 	wm_mouse_pos.x = 100;
 	wm_mouse_pos.y = 100;
+	
+	initlock(&wmlock, "wmlock");
 }
 
 void focusWindow(int handler)
@@ -108,6 +112,9 @@ int createWindow(int width, int height, const char *title)
 	if (emptyhead == -1) return -1;
 	uint len = strlen(title);
 	if (len >= MAX_TITLE_LEN) return -1;
+	
+	acquire(&wmlock);
+	
 	int idx = emptyhead;
 	removeFromList(&emptyhead, idx);
 	addToListHead(&windowlisthead, idx);
@@ -119,6 +126,8 @@ int createWindow(int width, int height, const char *title)
 	
 	//TODO draw window
 	focusWindow(idx);
+	
+	release(&wmlock);
 	
 	return idx;
 }
@@ -139,6 +148,8 @@ void dispatchMessage(int handler, message *msg)
 
 void wmHandleMessage(message *msg)
 {
+	acquire(&wmlock);
+	
 	message newmsg;
 	switch (msg->msg_type)
 	{
@@ -177,13 +188,18 @@ void wmHandleMessage(message *msg)
 	default:
 		break;
 	}
+	
+	release(&wmlock);
 }
 
 //return number of message (0 if buf is empty, 1 if not)
 int wmGetMessage(int handler, message *res)
 {
+	acquire(&wmlock);
 	//TODO check handler valid
-	if (dequeue(&windowlist[handler].wnd.buf, res)) return 0;
+	int ret = dequeue(&windowlist[handler].wnd.buf, res);
+	release(&wmlock);
+	if (ret) return 0;
 	else return 1;
 }
 

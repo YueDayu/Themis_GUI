@@ -91,7 +91,6 @@ void
 genMouseMessage()
 {
   if (packet.x_overflow || packet.y_overflow) return;
-  cprintf("%x|%x|%x|%x|%x|%x|%x|%d|%d\n", packet.x_overflow, packet.y_overflow, packet.x_sgn, packet.y_sgn, packet.m_btn, packet.r_btn, packet.l_btn, packet.x_mov, packet.y_mov);
 	int x = packet.x_sgn ? (0xffffff00 | (packet.x_mov & 0xff)) : (packet.x_mov & 0xff);
 	int y = packet.y_sgn ? (0xffffff00 | (packet.y_mov & 0xff)) : (packet.y_mov & 0xff);
 /*	if(x == 127 || x == -127 || y == 127 || y == -127){
@@ -128,53 +127,56 @@ void
 mouseintr(void)
 {
   acquire(&mouselock);
-  int data = inb(0x60);
-  count++;
+  int state;
+  while (((state = inb(0x64)) & 1) == 1) {
+    int data = inb(0x60);
+    count++;
 
-	if (recovery == 0 && (data & 255) == 0)
-		recovery = 1;
-	else if (recovery == 1 && (data & 255) == 0)
-		recovery = 2;
-	else if ((data & 255) == 12)
-		recovery = 0;
-	else
-		recovery = -1;
+	  if (recovery == 0 && (data & 255) == 0)
+		  recovery = 1;
+	  else if (recovery == 1 && (data & 255) == 0)
+		  recovery = 2;
+	  else if ((data & 255) == 12)
+		  recovery = 0;
+	  else
+		  recovery = -1;
 
-  switch(count)
-  {
-      case 1: if(data & 0x08)
-              {
-                  packet.y_overflow = (data >> 7) & 0x1;
-                  packet.x_overflow = (data >> 6) & 0x1;
-                  packet.y_sgn = (data >> 5) & 0x1;
-                  packet.x_sgn = (data >> 4) & 0x1;
-                  packet.m_btn = (data >> 2) & 0x1;
-                  packet.r_btn = (data >> 1) & 0x1;
-                  packet.l_btn = (data >> 0) & 0x1;
-                  break;
-              }
-              else
-              {
-                  count = 0;
-                  break;
-              }
-               
-      case 2:  packet.x_mov = data;
-               break;
-      case 3:  packet.y_mov = data;  
-               break;
-      default: count=0;    break;
-  }
+    switch(count)
+    {
+        case 1: if(data & 0x08)
+                {
+                    packet.y_overflow = (data >> 7) & 0x1;
+                    packet.x_overflow = (data >> 6) & 0x1;
+                    packet.y_sgn = (data >> 5) & 0x1;
+                    packet.x_sgn = (data >> 4) & 0x1;
+                    packet.m_btn = (data >> 2) & 0x1;
+                    packet.r_btn = (data >> 1) & 0x1;
+                    packet.l_btn = (data >> 0) & 0x1;
+                    break;
+                }
+                else
+                {
+                    count = 0;
+                    break;
+                }
+                 
+        case 2:  packet.x_mov = data;
+                 break;
+        case 3:  packet.y_mov = data;  
+                 break;
+        default: count=0;    break;
+    }
 
-	if (recovery == 2)
-	{
-		count = 0;
-		recovery = -1;
-	}
-	else if (count == 3)
-	{
-		count = 0;
-		genMouseMessage();
+	  if (recovery == 2)
+	  {
+		  count = 0;
+		  recovery = -1;
+	  }
+	  else if (count == 3)
+	  {
+		  count = 0;
+		  genMouseMessage();
+	  }
 	}
 
   release(&mouselock);
