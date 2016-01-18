@@ -335,10 +335,10 @@ void wmUpdateWindow(int handler, int xmin, int ymin, int width, int height)
     
     window *wnd = &windowlist[handler].wnd;
     win_rect updrect;
-    updrect.xmin = max(max(xmin, 0) + wnd->contents.xmin, 0);
-    updrect.ymin = max(max(ymin, 0) + wnd->contents.ymin, 0);
-    updrect.xmax = min(min(xmin + width + wnd->contents.xmin, wnd->contents.xmax), SCREEN_WIDTH);
-    updrect.ymax = min(min(ymin + height + wnd->contents.ymin, wnd->contents.ymax), SCREEN_HEIGHT);
+    updrect.xmin = clamp(max(xmin, 0) + wnd->contents.xmin, 0, SCREEN_WIDTH);
+    updrect.ymin = clamp(max(ymin, 0) + wnd->contents.ymin, 0, SCREEN_HEIGHT);
+    updrect.xmax = clamp(min(xmin + width + wnd->contents.xmin, wnd->contents.xmax), 0, SCREEN_WIDTH);
+    updrect.ymax = clamp(min(ymin + height + wnd->contents.ymin, wnd->contents.ymax), 0, SCREEN_HEIGHT);
     
     if (windowlist[handler].prev == -1)
     {
@@ -384,6 +384,7 @@ void wmUpdateWindow(int handler, int xmin, int ymin, int width, int height)
         ycount[rects[i].ymin] = 1;
         ycount[rects[i].ymax] = 1;
     }
+    xrev[0] = 0; yrev[0] = 0;
     for (i = 1; i < xsize; ++i)
     {
         if (xcount[i]) xrev[xcount[i - 1] + 1] = i;
@@ -426,7 +427,7 @@ void wmUpdateWindow(int handler, int xmin, int ymin, int width, int height)
             if (subrects[i][j] <= 0)
             {
                 draw24ImagePart(screen_buf2, wnd->content_buf, xrev[i], yrev[j], wndwidth, wndheight,
-                                xrev[i] - wnd->contents.xmin, yrev[i] - wnd->contents.ymin, xrev[i+1]-xrev[i], yrev[j+1]-yrev[j]);
+                                xrev[i] - wnd->contents.xmin, yrev[j] - wnd->contents.ymin, xrev[i+1]-xrev[i], yrev[j+1]-yrev[j]);
                 clearRectByCoord(screen_buf1, screen_buf2, xrev[i], yrev[j], xrev[i+1], yrev[j+1]);
                 clearRectByCoord(screen, screen_buf1, xrev[i], yrev[j], xrev[i+1], yrev[j+1]);
             }

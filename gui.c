@@ -185,7 +185,7 @@ void draw24ImagePart(RGB *buf, RGB *img, int x, int y, int width, int height, in
     acquireGUILock(buf);
     for (i = 0; i < subh; i++) {
         t = buf + (y + i) * SCREEN_WIDTH + x;
-        o = img + (height - i - suby) * width;
+        o = img + (height - i - suby) * width + subx;
         memmove(t, o, subw * 3);
     }
     releaseGUILock(buf);
