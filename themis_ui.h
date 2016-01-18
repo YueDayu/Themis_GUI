@@ -14,6 +14,9 @@ const int MAX_HEIGHT = 600;
 // @para: window widget_index message
 typedef void(*Handler)(struct window *win, int index, message *msg);
 
+// @para: window widget_index
+typedef void(*painter)(struct window *win, int index);
+
 typedef struct widget_size {
     int x;
     int y;
@@ -110,6 +113,7 @@ typedef struct Widget {
     widget_base context;
     int type;
     widget_size size;
+    painter paint;
 } Widget;
 
 typedef struct window {

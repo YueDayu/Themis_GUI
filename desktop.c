@@ -15,7 +15,6 @@ int main() {
     updatewindow(hwnd, 0, 0, w, h);
     struct message msg;
 
-    draw24Image(hwnd, image, 0, 0, w, h);
     int hwnd2 = createwindow(600, 200, "hello window 2", 0, 0);
     int hwnd1 = createwindow(600, 200, "hello window", 0, 0);
 

@@ -50,5 +50,3 @@ int createwindow(int, int, const char *, struct RGB *, int);
 int destroywindow(int);
 int getmessage(int, struct message *);
 int updatewindow(int, int, int, int, int);
-
-int draw24Image(int, struct RGB*, int, int, int, int);
