@@ -46,8 +46,9 @@ int readBitmapFile(char *, struct RGBA *, int *, int *);
 int read24BitmapFile(char *, struct RGB *, int *, int *);
 
 // window_manager.c
-int createwindow(int, int, const char *);
+int createwindow(int, int, const char *, struct RGB *, int);
 int destroywindow(int);
 int getmessage(int, struct message *);
+int updatewindow(int, int, int, int, int);
 
 int draw24Image(int, struct RGB*, int, int, int, int);

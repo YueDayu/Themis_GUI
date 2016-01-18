@@ -11,12 +11,13 @@ int main() {
     int res = read24BitmapFile("desktop.bmp", image, &h, &w);
     printf(1, "res: %d\n", res);
 
-    int hwnd = createwindow(0, 0, "");
+    int hwnd = createwindow(0, 0, "", 0, 0);
+    updatewindow(hwnd, 0, 0, w, h);
     struct message msg;
 
     draw24Image(hwnd, image, 0, 0, w, h);
-    int hwnd2 = createwindow(600, 200, "hello window 2");
-    int hwnd1 = createwindow(600, 200, "hello window");
+    int hwnd2 = createwindow(600, 200, "hello window 2", 0, 0);
+    int hwnd1 = createwindow(600, 200, "hello window", 0, 0);
 
     while(1)
     {

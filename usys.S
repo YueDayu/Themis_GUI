@@ -33,4 +33,5 @@ SYSCALL(draw24Image)
 SYSCALL(createwindow)
 SYSCALL(getmessage)
 SYSCALL(destroywindow)
+SYSCALL(updatewindow)
 

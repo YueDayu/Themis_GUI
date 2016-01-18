@@ -102,6 +102,7 @@ extern int sys_draw24Image(void);
 extern int sys_getmessage(void);
 extern int sys_createwindow(void);
 extern int sys_destroywindow(void);
+extern int sys_updatewindow(void);
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -128,7 +129,8 @@ static int (*syscalls[])(void) = {
 [SYS_draw24Image]   sys_draw24Image,
 [SYS_createwindow] sys_createwindow,
 [SYS_getmessage] sys_getmessage,
-[SYS_destroywindow] sys_destroywindow
+[SYS_destroywindow] sys_destroywindow,
+[SYS_updatewindow] sys_updatewindow
 };
 
 void
