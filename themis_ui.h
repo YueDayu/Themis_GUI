@@ -36,6 +36,15 @@ typedef struct widget_size {
 #define FOLDER_FILE 4
 #define UNKNOWN_FILE 5
 
+#define ICON_IMG_SIZE 64
+
+char file_image_path[FILE_TYPE_NUM][MAX_SHORT_STRLEN] = {"explorer.bmp",
+                                              "txt.bmp",
+                                              "pic.bmp",
+                                              "exec.bmp",
+                                              "folder.bmp",
+                                              "unknow.bmp"};
+
 typedef struct Image {
     struct RGB *image;
 } Image;
@@ -54,7 +63,6 @@ typedef struct Button {
 
 typedef struct Input {
     struct RGBA color;
-    struct RGBA bg_color;
     int current_pos;
     char text[MAX_SHORT_STRLEN];
     Handler onKeyDown;
@@ -62,11 +70,10 @@ typedef struct Input {
 } Input;
 
 typedef struct TextArea {
-    struct RGBA color;
-    struct RGBA bg_color;
     int begin_line;
     int current_line;
     int current_pos;
+    struct RGBA color;
     char text[MAX_LONG_STRLEN];
     Handler onKeyDown;
     Handler onLeftClick;
@@ -85,7 +92,7 @@ typedef struct FileList {
     IconView *file_list;
     int file_num;
     char path[MAX_LONG_STRLEN];
-    RGBA (*image)[FILE_TYPE_NUM];
+    RGBA* image[FILE_TYPE_NUM];
     Handler onDoubleClick;
     Handler onLeftClick;
 } FileList;
