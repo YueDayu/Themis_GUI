@@ -2,6 +2,7 @@
 struct RGB;
 struct RGBA;
 struct message;
+struct window;
 
 const int MAX_WIDTH = 800;
 const int MAX_HEIGHT = 600;
@@ -11,7 +12,7 @@ const int MAX_HEIGHT = 600;
 #define MAX_LONG_STRLEN 512
 
 // @para: window widget_index message
-typedef void (*Handler)(window, int, message *);
+typedef void(*Handler)(struct window *win, int index, message *msg);
 
 typedef struct widget_size {
     int x;
@@ -27,6 +28,7 @@ typedef struct widget_size {
 #define TEXT_AREA 4
 #define FILE_LIST 5
 
+#define FILE_TYPE_NUM 6
 #define EXPLORER_FILE 0
 #define TEXT_FILE 1
 #define BMP_FILE 2
@@ -76,11 +78,14 @@ typedef struct IconView {
     struct IconView *next;
 } IconView;
 
+// TODO: I don't know...
 typedef struct FileList {
     char direction;
     char scrollable;
     IconView *file_list;
     int file_num;
+    char path[MAX_LONG_STRLEN];
+    RGBA (*image)[FILE_TYPE_NUM];
     Handler onDoubleClick;
     Handler onLeftClick;
 } FileList;
