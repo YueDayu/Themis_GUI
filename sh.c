@@ -173,13 +173,24 @@ main(void)
   {
   	if (getmessage(hwnd, &msg))
   	{
+  		if (msg.msg_type == WM_WINDOW_CLOSE)
+  			break;
   		//printf(2, "%d %d %d\n", msg.msg_type, msg.params[0], msg.params[1]);
   	}
   	if (getmessage(hwnd2, &msg))
   	{
+  	  	if (msg.msg_type == WM_WINDOW_CLOSE)
+  			break;
+  		if (msg.msg_type == M_KEY_DOWN)
+  		{
+  			if (msg.params[0] == 'a') break;
+  		}
   		//printf(2, "%d %d %d\n", msg.msg_type, msg.params[0], msg.params[1]);
   	}
   }
+  
+  destroywindow(hwnd);
+  while(1);;
 
   // Read and run input commands.
   while(getcmd(buf, sizeof(buf)) >= 0){

@@ -101,6 +101,7 @@ extern int sys_uptime(void);
 extern int sys_hello(void);
 extern int sys_getmessage(void);
 extern int sys_createwindow(void);
+extern int sys_destroywindow(void);
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -126,7 +127,8 @@ static int (*syscalls[])(void) = {
 [SYS_close]   sys_close,
 [SYS_hello]   sys_hello,
 [SYS_createwindow] sys_createwindow,
-[SYS_getmessage] sys_getmessage
+[SYS_getmessage] sys_getmessage,
+[SYS_destroywindow] sys_destroywindow
 };
 
 void

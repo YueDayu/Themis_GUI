@@ -23,4 +23,5 @@
 #define SYS_hello  22
 #define SYS_getmessage 23
 #define SYS_createwindow 24
+#define SYS_destroywindow 25
 

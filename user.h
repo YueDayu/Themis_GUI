@@ -48,4 +48,5 @@ int read24BitmapFile(char *, struct RGB *, int *, int *);
 
 // window_manager.c
 int createwindow(int, int, const char *);
+int destroywindow(int);
 int getmessage(int, struct message *);

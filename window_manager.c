@@ -107,10 +107,11 @@ void wmInit()
 void drawWindow(int layer, int handler)
 {
 	window *wnd = &windowlist[handler].wnd;
-    struct RGBA barcolor, wndcolor, txtcolor;
+    struct RGBA barcolor, wndcolor, txtcolor, closecolor;
     barcolor.R = 170; barcolor.G = 150; barcolor.B = 100; barcolor.A = 255;
     if (layer == 2) barcolor.R = barcolor.G = barcolor.B = 140;
     wndcolor.R = wndcolor.G = wndcolor.B = wndcolor.A = 255;
+    closecolor.R = 200; closecolor.G = 50; closecolor.B = 10;
     txtcolor = wndcolor;
 
     struct RGB *dst;
@@ -119,6 +120,7 @@ void drawWindow(int layer, int handler)
     else dst = screen;
     
     drawRectByCoord(dst, wnd->titlebar.xmin, wnd->titlebar.ymin, wnd->titlebar.xmax, wnd->contents.ymax + 3, barcolor);
+    drawRectByCoord(dst, wnd->titlebar.xmax - 30, wnd->titlebar.ymin, wnd->titlebar.xmax - 3, wnd->titlebar.ymax, closecolor);
     drawRectByCoord(dst, wnd->contents.xmin, wnd->contents.ymin, wnd->contents.xmax, wnd->contents.ymax, wndcolor);
     drawString(dst, wnd->titlebar.xmin + 5, wnd->titlebar.ymin + 3, wnd->title, txtcolor);
     
@@ -159,8 +161,11 @@ int createWindow(int width, int height, const char *title)
 	addToListHead(&windowlisthead, idx);
 
 	initqueue(&windowlist[idx].wnd.buf);
-	createRectBySize(&windowlist[idx].wnd.contents, 100, 100, width, height);
-	createRectBySize(&windowlist[idx].wnd.titlebar, 97, 80, width + 6, 20);
+	//initial window position according to idx
+	int offsetX = (100 + idx * 47) % (SCREEN_WIDTH - 100);
+	int offsetY = (100 + idx * 33) % (SCREEN_HEIGHT - 100);
+	createRectBySize(&windowlist[idx].wnd.contents, offsetX, offsetY, width, height);
+	createRectBySize(&windowlist[idx].wnd.titlebar, offsetX - 3, offsetY - 20, width + 6, 20);
 	memmove(windowlist[idx].wnd.title, title, len);
     
     //drawing is completed in focusWindow
@@ -175,6 +180,26 @@ int createDesktopWindow()
 {
 	//TODO create full-screen window without titlebar
 	return 0;
+}
+
+void destroyWindow(int handler)
+{
+    acquire(&wmlock);
+    
+    if (handler != focus) focusWindow(handler);
+    //clear window on screen
+    window *wnd = &windowlist[handler].wnd;
+    clearRectByCoord(screen_buf1, screen_buf2, wnd->titlebar.xmin, wnd->titlebar.ymin, wnd->titlebar.xmax, wnd->contents.ymax + 3);
+    clearRectByCoord(screen, screen_buf2, wnd->titlebar.xmin, wnd->titlebar.ymin, wnd->titlebar.xmax, wnd->contents.ymax + 3);
+    drawMouse(screen, 0, wm_mouse_pos.x, wm_mouse_pos.y);
+    
+    //choose next window to focus
+    int newfocus = windowlist[handler].next;
+    removeFromList(&windowlisthead, handler);
+    addToListHead(&emptyhead, handler);
+    if (newfocus != -1) focusWindow(newfocus);
+    
+    release(&wmlock);
 }
 
 #define MOUSE_SPEED_X 0.8f
@@ -225,6 +250,11 @@ void wmHandleMessage(message *msg)
 		    newmsg.params[2] = msg->params[0];
 		    dispatchMessage(focus, &newmsg);
 		}
+		else if (wm_mouse_pos.x + 30 > windowlist[focus].wnd.titlebar.xmax) //close
+		{
+		    newmsg.msg_type = WM_WINDOW_CLOSE;
+		    dispatchMessage(focus, &newmsg);
+		}
 		break;
 	case M_MOUSE_UP:
 		//TODO
@@ -267,6 +297,14 @@ int sys_createwindow()
 	argint(1, &h);
 	argstr(2, &title);
 	return createWindow(w, h, title);
+}
+
+int sys_destroywindow()
+{
+    int h;
+    argint(0, &h);
+    destroyWindow(h);
+    return 0;
 }
 
 int sys_getmessage()

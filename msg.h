@@ -16,6 +16,9 @@
 #define M_MOUSE_DOWN 4
 #define M_MOUSE_UP 5
 
+#define WM_WINDOW_CLOSE 100
+#define WM_WINDOW_REDRAW 101
+
 typedef struct message {
 	int msg_type;
 	int params[10];

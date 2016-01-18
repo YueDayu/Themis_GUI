@@ -32,4 +32,5 @@ SYSCALL(uptime)
 SYSCALL(hello)
 SYSCALL(createwindow)
 SYSCALL(getmessage)
+SYSCALL(destroywindow)
 
