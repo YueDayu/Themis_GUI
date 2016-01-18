@@ -13,7 +13,14 @@ void drawInputWidget(window *win, int index);
 void drawTextAreaWidget(window *win, int index);
 void drawFileListWidget(window *win, int index);
 
-void createWindow(window *win, const char* title, int alwaysfront) {
+char file_image_path[FILE_TYPE_NUM][MAX_SHORT_STRLEN] = {"explorer.bmp",
+                                                         "txt.bmp",
+                                                         "pic.bmp",
+                                                         "exec.bmp",
+                                                         "folder.bmp",
+                                                         "unknow.bmp"};
+
+void UI_createWindow(window *win, const char* title, int alwaysfront) {
     if (win->width > MAX_WIDTH || win->height > MAX_HEIGHT) {
         win->handler = -1;
         return;
@@ -21,6 +28,7 @@ void createWindow(window *win, const char* title, int alwaysfront) {
     win->window_buf = malloc(win->width * win->height * 3);
     if (!win->window_buf) {
         win->handler = -1;
+        return;
     }
     createwindow(win->width, win->height, title, win->window_buf, alwaysfront);
 }
@@ -48,7 +56,7 @@ void freeWidget(Widget *widget) {
     }
 }
 
-void destroyWindow(window *win) {
+void UI_destroyWindow(window *win) {
     free(win->window_buf);
     int i;
     for (i = 0; i < win->widget_number; i++) {
@@ -70,7 +78,7 @@ void destroyWindow(window *win) {
 }
 
 // system call
-void updateWindow(window *win, int x, int y, int w, int h) {
+void updatePartWindow(window *win, int x, int y, int w, int h) {
     updatewindow(win->handler, x, y, w, h);
 }
 
@@ -254,7 +262,7 @@ void drawString(window *win, int x, int y, char *str, RGBA color, int width) {
     int offset_x = 0;
 
     while (*str != '\0') {
-        if (x + offset_x >= win->width || x + offset_x >= width) { // if too long
+        if (x + offset_x >= win->width || offset_x >= width) { // if too long
             break;
         }
         offset_x += drawCharacter(win, x + offset_x, y, *str, color);
@@ -300,7 +308,7 @@ void draw24Image(window *win, RGB *img, int x, int y, int width, int height) {
             continue;
         }
         t = win->window_buf + (y + i) * win->width + x;
-        o = img + (height - i) * width;
+        o = img + (height - i - 1) * width;
         memmove(t, o, max_line * 3);
     }
 }
@@ -423,9 +431,10 @@ void drawTextAreaWidget(window *win, int index) {
 void drawFileListWidget(window *win, int index) {
 }
 
-void drawWindow(window *win) {
+void drawAllWidget(window *win) {
     int i;
     for (i = 0; i < win->widget_number; i++) {
         win->widgets[i].paint(win, i);
     }
+    updatewindow(win->handler, 0, 0, win->width, win->height);
 }

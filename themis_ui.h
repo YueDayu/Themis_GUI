@@ -4,8 +4,8 @@ struct RGBA;
 struct message;
 struct window;
 
-const int MAX_WIDTH = 800;
-const int MAX_HEIGHT = 600;
+#define MAX_WIDTH 800
+#define MAX_HEIGHT 600
 
 #define MAX_WIDGET 10
 #define MAX_SHORT_STRLEN 20
@@ -40,13 +40,6 @@ typedef struct widget_size {
 #define UNKNOWN_FILE 5
 
 #define ICON_IMG_SIZE 64
-
-char file_image_path[FILE_TYPE_NUM][MAX_SHORT_STRLEN] = {"explorer.bmp",
-                                              "txt.bmp",
-                                              "pic.bmp",
-                                              "exec.bmp",
-                                              "folder.bmp",
-                                              "unknow.bmp"};
 
 typedef struct Image {
     struct RGB *image;
