@@ -98,7 +98,7 @@ void wmInit()
 
 	wm_mouse_pos.x = SCREEN_WIDTH / 2;
 	wm_mouse_pos.y = SCREEN_HEIGHT / 2;
-	
+
 	wm_last_mouse_pos = wm_mouse_pos;
 
 	initlock(&wmlock, "wmlock");
@@ -118,17 +118,17 @@ void drawWindow(int layer, int handler)
     if (layer == 2) dst = screen_buf2;
     else if (layer == 1) dst = screen_buf1;
     else dst = screen;
-    
+
     drawRectByCoord(dst, wnd->titlebar.xmin, wnd->titlebar.ymin, wnd->titlebar.xmax, wnd->contents.ymax + 3, barcolor);
     drawRectByCoord(dst, wnd->titlebar.xmax - 30, wnd->titlebar.ymin, wnd->titlebar.xmax - 3, wnd->titlebar.ymax, closecolor);
     drawRectByCoord(dst, wnd->contents.xmin, wnd->contents.ymin, wnd->contents.xmax, wnd->contents.ymax, wndcolor);
     drawString(dst, wnd->titlebar.xmin + 5, wnd->titlebar.ymin + 3, wnd->title, txtcolor);
-    
+
     if (layer >= 2)
         clearRectByCoord(screen_buf1, screen_buf2, wnd->titlebar.xmin, wnd->titlebar.ymin, wnd->titlebar.xmax, wnd->contents.ymax + 3);
     if (layer >= 1)
         clearRectByCoord(screen, screen_buf1, wnd->titlebar.xmin, wnd->titlebar.ymin, wnd->titlebar.xmax, wnd->contents.ymax + 3);
-        
+
     //TODO fire REDRAW message to application
 }
 
@@ -136,14 +136,14 @@ void focusWindow(int handler)
 {
 	removeFromList(&windowlisthead, handler);
 	addToListHead(&windowlisthead, handler);
-	
+
 	//redraw all occluded window
 	int p, q;
 	for (p = windowlisthead; p != -1; p = windowlist[p].next) q = p;
 	for (p = q; p != windowlisthead; p = windowlist[p].prev) drawWindow(2, p);
 	drawWindow(1, windowlisthead);
 	drawMouse(screen, 0, wm_mouse_pos.x, wm_mouse_pos.y);
-	
+
 	focus = handler;
 }
 
@@ -167,7 +167,7 @@ int createWindow(int width, int height, const char *title)
 	createRectBySize(&windowlist[idx].wnd.contents, offsetX, offsetY, width, height);
 	createRectBySize(&windowlist[idx].wnd.titlebar, offsetX - 3, offsetY - 20, width + 6, 20);
 	memmove(windowlist[idx].wnd.title, title, len);
-    
+
     //drawing is completed in focusWindow
 	focusWindow(idx);
 
@@ -185,25 +185,25 @@ int createDesktopWindow()
 void destroyWindow(int handler)
 {
     acquire(&wmlock);
-    
+
     if (handler != focus) focusWindow(handler);
     //clear window on screen
     window *wnd = &windowlist[handler].wnd;
     clearRectByCoord(screen_buf1, screen_buf2, wnd->titlebar.xmin, wnd->titlebar.ymin, wnd->titlebar.xmax, wnd->contents.ymax + 3);
     clearRectByCoord(screen, screen_buf2, wnd->titlebar.xmin, wnd->titlebar.ymin, wnd->titlebar.xmax, wnd->contents.ymax + 3);
     drawMouse(screen, 0, wm_mouse_pos.x, wm_mouse_pos.y);
-    
+
     //choose next window to focus
     int newfocus = windowlist[handler].next;
     removeFromList(&windowlisthead, handler);
     addToListHead(&emptyhead, handler);
     if (newfocus != -1) focusWindow(newfocus);
-    
+
     release(&wmlock);
 }
 
-#define MOUSE_SPEED_X 0.8f
-#define MOUSE_SPEED_Y -0.8f;
+#define MOUSE_SPEED_X 0.6f
+#define MOUSE_SPEED_Y -0.6f;
 
 void dispatchMessage(int handler, message *msg)
 {

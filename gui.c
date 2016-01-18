@@ -58,33 +58,22 @@ void initGUI() {
 }
 
 void acquireGUILock(RGB *buf) {
-    switch (buf) {
-        case screen:
-            acquire(&screen_lock);
-            break;
-        case screen_buf1:
-            acquire(&buf1_lock);
-            break;
-        case screen_buf2:
-            acquire(&buf2_lock);
-        default:
-            break;
+    if (buf == screen) {
+        acquire(&screen_lock);
+    } else if (buf == screen_buf1) {
+        acquire(&buf1_lock);
+    } else if (buf == screen_buf2) {
+        acquire(&buf2_lock);
     }
 }
 
 void releaseGUILock(RGB *buf) {
-    switch (buf) {
-        case screen:
-            release(&screen_lock);
-            break;
-        case screen_buf1:
-            release(&buf1_lock);
-            break;
-        case screen_buf2:
-            release(&buf2_lock);
-            break;
-        default:
-            break;
+    if (buf == screen) {
+        release(&screen_lock);
+    } else if (buf == screen_buf1) {
+        release(&buf1_lock);
+    } else if (buf == screen_buf2) {
+        release(&buf2_lock);
     }
 }
 
