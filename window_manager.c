@@ -154,7 +154,10 @@ void drawWindow(int layer, int handler, int refresh)
 	if (handler != desktopHandler) {
 	    drawWindowBar(dst, wnd, barcolor);
 
-		drawRectByCoord(dst, wnd->contents.xmin, wnd->contents.ymin, wnd->contents.xmax, wnd->contents.ymax, wndcolor);
+//		drawRectByCoord(dst, wnd->contents.xmin, wnd->contents.ymin, wnd->contents.xmax, wnd->contents.ymax, wndcolor);
+        draw24ImagePart(dst, wnd->content_buf, wnd->contents.xmin, wnd->contents.ymin,
+                        wnd->contents.xmax - wnd->contents.xmin, wnd->contents.ymax - wnd->contents.ymin,
+                        0, 0, wnd->contents.xmax - wnd->contents.xmin, wnd->contents.ymax - wnd->contents.ymin);
 		drawString(dst, wnd->titlebar.xmin + 5, wnd->titlebar.ymin + 3, wnd->title, txtcolor);
 	}
 
