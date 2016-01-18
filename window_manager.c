@@ -11,6 +11,10 @@
 
 #include "window_manager.h"
 
+inline int min(int x, int y) { return x < y ? x : y; }
+inline int max(int x, int y) { return x > y ? x : y; }
+inline int clamp(int x, int l, int r) { return min(r, max(l, x)); }
+
 int isInRect(win_rect *rect, int x, int y)
 {
 	return (x >= rect->xmin && x <= rect->xmax && y >= rect->ymin && y <= rect->ymax);
@@ -122,14 +126,24 @@ void getWindowRect(int handler, win_rect *res)
     res->ymax = wnd->contents.ymax + 3;
 }
 
-void drawWindow(int layer, int handler)
+void drawWindowBar(struct RGB *dst, window *wnd, struct RGBA barcolor)
+{  
+    struct RGBA closecolor;
+    closecolor.R = 200; closecolor.G = 50; closecolor.B = 10; closecolor.A = 255;
+    drawRectByCoord(dst, wnd->titlebar.xmin, wnd->titlebar.ymin, wnd->titlebar.xmax - 30, wnd->titlebar.ymax, barcolor);
+    drawRectByCoord(dst, wnd->titlebar.xmax - 30, wnd->titlebar.ymin, wnd->titlebar.xmax - 3, wnd->titlebar.ymax, closecolor);
+    drawRectByCoord(dst, wnd->titlebar.xmax - 3, wnd->titlebar.ymin, wnd->titlebar.xmax, wnd->contents.ymax + 3, barcolor);
+    drawRectByCoord(dst, wnd->titlebar.xmin, wnd->contents.ymin, wnd->contents.xmin, wnd->contents.ymax + 3, barcolor);
+    drawRectByCoord(dst, wnd->contents.xmin, wnd->contents.ymax, wnd->contents.xmax, wnd->contents.ymax + 3, barcolor);
+}
+
+void drawWindow(int layer, int handler, int refresh)
 {
 	window *wnd = &windowlist[handler].wnd;
-    struct RGBA barcolor, wndcolor, txtcolor, closecolor;
+    struct RGBA barcolor, wndcolor, txtcolor;
     barcolor.R = 170; barcolor.G = 150; barcolor.B = 100; barcolor.A = 255;
     if (layer == 2) barcolor.R = barcolor.G = barcolor.B = 140;
     wndcolor.R = wndcolor.G = wndcolor.B = wndcolor.A = 255;
-    closecolor.R = 200; closecolor.G = 50; closecolor.B = 10;
     txtcolor = wndcolor;
 
     struct RGB *dst;
@@ -138,20 +152,31 @@ void drawWindow(int layer, int handler)
     else dst = screen;
 
 	if (handler != desktopHandler) {
-		drawRectByCoord(dst, wnd->titlebar.xmin, wnd->titlebar.ymin, wnd->titlebar.xmax, wnd->contents.ymax + 3,
-						barcolor);
-		drawRectByCoord(dst, wnd->titlebar.xmax - 30, wnd->titlebar.ymin, wnd->titlebar.xmax - 3, wnd->titlebar.ymax,
-						closecolor);
+	    drawWindowBar(dst, wnd, barcolor);
+
 		drawRectByCoord(dst, wnd->contents.xmin, wnd->contents.ymin, wnd->contents.xmax, wnd->contents.ymax, wndcolor);
 		drawString(dst, wnd->titlebar.xmin + 5, wnd->titlebar.ymin + 3, wnd->title, txtcolor);
 	}
 
-    if (layer >= 2)
-        clearRectByCoord(screen_buf1, screen_buf2, wnd->titlebar.xmin, wnd->titlebar.ymin, wnd->titlebar.xmax, wnd->contents.ymax + 3);
-    if (layer >= 1)
-        clearRectByCoord(screen, screen_buf1, wnd->titlebar.xmin, wnd->titlebar.ymin, wnd->titlebar.xmax, wnd->contents.ymax + 3);
+    if (refresh)
+    {
+        if (layer >= 2)
+            clearRectByCoord(screen_buf1, screen_buf2, wnd->titlebar.xmin, wnd->titlebar.ymin, wnd->titlebar.xmax, wnd->contents.ymax + 3);
+        if (layer >= 1)
+            clearRectByCoord(screen, screen_buf1, wnd->titlebar.xmin, wnd->titlebar.ymin, wnd->titlebar.xmax, wnd->contents.ymax + 3);
+    }
 
     //TODO fire REDRAW message to application
+}
+
+void refreshWindowScreen(int layer, int handler)
+{
+    window *wnd = &windowlist[handler].wnd;
+    struct RGB *dst;
+    if (layer == 2) dst = screen_buf2;
+    else if (layer == 1) dst = screen_buf1;
+    else dst = screen;
+    clearRectByCoord(screen, dst, wnd->titlebar.xmin, wnd->titlebar.ymin, wnd->titlebar.xmax, wnd->contents.ymax + 3);
 }
 
 void focusWindow(int handler)
@@ -161,14 +186,28 @@ void focusWindow(int handler)
 	if (handler != desktopHandler) {
 		removeFromList(&windowlisthead, handler);
 		addToListHead(&windowlisthead, handler);
-	}
 
-	//redraw all occluded window
-	int p, q;
-	for (p = windowlisthead; p != -1; p = windowlist[p].next) q = p;
-	for (p = q; p != windowlisthead; p = windowlist[p].prev) drawWindow(2, p);
-	drawWindow(1, windowlisthead);
-	drawMouse(screen, 0, wm_mouse_pos.x, wm_mouse_pos.y);
+	    //redraw all occluded window
+	    int p, q;
+	    for (p = windowlisthead; p != -1; p = windowlist[p].next) q = p;
+	    for (p = q; p != windowlisthead; p = windowlist[p].prev) drawWindow(2, p, 0);
+	    clearRect(screen_buf1, screen_buf2, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+	    //if (focus != desktopHandler) refreshWindowScreen(2, focus);
+	    drawWindow(1, windowlisthead, 0);
+	    if (focus != desktopHandler)
+	    {
+	        clearRectByCoord(screen, screen_buf1,
+	                         min(windowlist[focus].wnd.titlebar.xmin, windowlist[handler].wnd.titlebar.xmin),
+	                         min(windowlist[focus].wnd.titlebar.ymin, windowlist[handler].wnd.titlebar.ymin),
+	                         max(windowlist[focus].wnd.titlebar.xmax, windowlist[handler].wnd.titlebar.xmax),
+	                         max(windowlist[focus].wnd.contents.ymax, windowlist[handler].wnd.contents.ymax) + 3);
+	    }
+	    else
+	    {
+	        refreshWindowScreen(1, handler);
+	    }
+	    drawMouse(screen, 0, wm_mouse_pos.x, wm_mouse_pos.y);
+	}
 
 	focus = handler;
 }
@@ -208,7 +247,7 @@ int createWindow(int width, int height, const char *title, struct RGB *buf, int 
 	focusWindow(idx);
 	if (frontcnt)
 	{
-	    drawWindow(2, idx);
+	    drawWindow(2, idx, 1);
 	    drawMouse(screen, 0, wm_mouse_pos.x, wm_mouse_pos.y);
 	}
 	
@@ -324,10 +363,6 @@ void wmHandleMessage(message *msg)
 
 	release(&wmlock);
 }
-
-inline int min(int x, int y) { return x < y ? x : y; }
-inline int max(int x, int y) { return x > y ? x : y; }
-inline int clamp(int x, int l, int r) { return min(r, max(l, x)); }
 
 void wmUpdateWindow(int handler, int xmin, int ymin, int width, int height)
 {
