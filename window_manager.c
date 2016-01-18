@@ -68,6 +68,7 @@ static struct
 static int windowlisthead, emptyhead;
 static int desktopHandler = -100;
 static int focus;
+static int frontcnt;
 
 struct spinlock wmlock;
 
@@ -106,8 +107,19 @@ void wmInit()
 	wm_mouse_pos.y = SCREEN_HEIGHT / 2;
 
 	wm_last_mouse_pos = wm_mouse_pos;
+	
+	frontcnt = 0;
 
 	initlock(&wmlock, "wmlock");
+}
+
+void getWindowRect(int handler, win_rect *res)
+{
+    window *wnd = &windowlist[handler].wnd;
+    res->xmin = wnd->titlebar.xmin;
+    res->ymin = wnd->titlebar.ymin;
+    res->xmax = wnd->titlebar.xmax;
+    res->ymax = wnd->contents.ymax + 3;
 }
 
 void drawWindow(int layer, int handler)
@@ -144,6 +156,8 @@ void drawWindow(int layer, int handler)
 
 void focusWindow(int handler)
 {
+    if (frontcnt) return;
+
 	if (handler != desktopHandler) {
 		removeFromList(&windowlisthead, handler);
 		addToListHead(&windowlisthead, handler);
@@ -165,6 +179,7 @@ int createWindow(int width, int height, const char *title, struct RGB *buf, int 
 	if (emptyhead == -1) return -1;
 	uint len = strlen(title);
 	if (len >= MAX_TITLE_LEN) return -1;
+	if (alwaysfront && frontcnt) return -1;
 
 	acquire(&wmlock);
 
@@ -188,9 +203,16 @@ int createWindow(int width, int height, const char *title, struct RGB *buf, int 
 	windowlist[idx].proc = proc; // remember current process
 	windowlist[idx].wnd.alwaysfront = alwaysfront;
 	windowlist[idx].wnd.content_buf = buf;
-
-    //drawing is completed in focusWindow
+	
+    //drawing is completed in focusWindow EXCEPT when there was an always-front window
 	focusWindow(idx);
+	if (frontcnt)
+	{
+	    drawWindow(2, idx);
+	    drawMouse(screen, 0, wm_mouse_pos.x, wm_mouse_pos.y);
+	}
+	
+    if (alwaysfront) ++frontcnt;
 
 	release(&wmlock);
 
@@ -213,6 +235,8 @@ void destroyWindow(int handler)
     clearRectByCoord(screen_buf1, screen_buf2, wnd->titlebar.xmin, wnd->titlebar.ymin, wnd->titlebar.xmax, wnd->contents.ymax + 3);
     clearRectByCoord(screen, screen_buf2, wnd->titlebar.xmin, wnd->titlebar.ymin, wnd->titlebar.xmax, wnd->contents.ymax + 3);
     drawMouse(screen, 0, wm_mouse_pos.x, wm_mouse_pos.y);
+    
+    if (wnd->alwaysfront) --frontcnt;
 
     //choose next window to focus
     int newfocus = windowlist[handler].next;
@@ -253,14 +277,17 @@ void wmHandleMessage(message *msg)
 		break;
 	case M_MOUSE_DOWN:
 		//handle focus changes
-		for (p = windowlisthead; p != -1; p = windowlist[p].next)
+		if (frontcnt == 0)
 		{
-			if (isInRect(&windowlist[p].wnd.titlebar, wm_mouse_pos.x, wm_mouse_pos.y) ||
-			    isInRect(&windowlist[p].wnd.contents, wm_mouse_pos.x, wm_mouse_pos.y))
-			{
-			    if (p != focus) focusWindow(p);
-			    break;
-			}
+		    for (p = windowlisthead; p != -1; p = windowlist[p].next)
+		    {
+			    if (isInRect(&windowlist[p].wnd.titlebar, wm_mouse_pos.x, wm_mouse_pos.y) ||
+			        isInRect(&windowlist[p].wnd.contents, wm_mouse_pos.x, wm_mouse_pos.y))
+			    {
+			        if (p != focus) focusWindow(p);
+			        break;
+			    }
+		    }
 		}
 		if (isInRect(&windowlist[focus].wnd.contents, wm_mouse_pos.x, wm_mouse_pos.y))
 		{
@@ -298,10 +325,116 @@ void wmHandleMessage(message *msg)
 	release(&wmlock);
 }
 
+inline int min(int x, int y) { return x < y ? x : y; }
+inline int max(int x, int y) { return x > y ? x : y; }
+inline int clamp(int x, int l, int r) { return min(r, max(l, x)); }
+
 void wmUpdateWindow(int handler, int xmin, int ymin, int width, int height)
 {
-    //TODO
-    cprintf("update window: %d %d %d %d %d\n", handler, xmin, ymin, width, height);
+    acquire(&wmlock);
+    
+    window *wnd = &windowlist[handler].wnd;
+    win_rect updrect;
+    updrect.xmin = max(max(xmin, 0) + wnd->contents.xmin, 0);
+    updrect.ymin = max(max(ymin, 0) + wnd->contents.ymin, 0);
+    updrect.xmax = min(min(xmin + width + wnd->contents.xmin, wnd->contents.xmax), SCREEN_WIDTH);
+    updrect.ymax = min(min(ymin + height + wnd->contents.ymin, wnd->contents.ymax), SCREEN_HEIGHT);
+    
+    if (windowlist[handler].prev == -1)
+    {
+        int wndwidth = wnd->contents.xmax - wnd->contents.xmin;
+        int wndheight = wnd->contents.ymax - wnd->contents.ymin;
+        draw24ImagePart(screen_buf1, windowlist[handler].wnd.content_buf, 
+                        updrect.xmin, updrect.ymin, wndwidth, wndheight,
+                        max(xmin, 0), max(ymin, 0), updrect.xmax - updrect.xmin, updrect.ymax - updrect.ymin);
+        clearRectByCoord(screen, screen_buf1, updrect.xmin, updrect.ymin, updrect.xmax, updrect.ymax);
+        drawMouse(screen, 0, wm_mouse_pos.x, wm_mouse_pos.y);
+        release(&wmlock);
+        return;
+    }
+    
+    static win_rect rects[MAX_WINDOW_CNT];
+    int rectcnt = 0;
+    int p, i, j;
+    for (p = windowlisthead; p != handler; p = windowlist[p].next)
+    {
+        getWindowRect(p, &rects[rectcnt]);
+        rects[rectcnt].xmin = clamp(rects[rectcnt].xmin, 0, SCREEN_WIDTH);
+        rects[rectcnt].xmax = clamp(rects[rectcnt].xmax, 0, SCREEN_WIDTH);
+        rects[rectcnt].ymin = clamp(rects[rectcnt].ymin, 0, SCREEN_HEIGHT);
+        rects[rectcnt].ymax = clamp(rects[rectcnt].ymax, 0, SCREEN_HEIGHT);
+        rectcnt++;
+    }
+    
+    #define xsize 810
+    #define ysize 610
+    #define rsize 110
+    //const int xsize = 800 + 10, ysize = 600 + 10;
+    static int xcount[xsize], ycount[ysize];
+    //static int rsize = MAX_WINDOW_CNT * 2 + 10;
+    static int xrev[rsize], yrev[rsize];
+    for (i = 0; i < xsize; ++i) xcount[i] = 0;
+    for (i = 0; i < ysize; ++i) ycount[i] = 0;
+    xcount[updrect.xmin] = 1; xcount[updrect.xmax] = 1;
+    ycount[updrect.ymin] = 1; ycount[updrect.ymax] = 1;
+    for (i = 0; i < rectcnt; ++i)
+    {
+        xcount[rects[i].xmin] = 1;
+        xcount[rects[i].xmax] = 1;
+        ycount[rects[i].ymin] = 1;
+        ycount[rects[i].ymax] = 1;
+    }
+    for (i = 1; i < xsize; ++i)
+    {
+        if (xcount[i]) xrev[xcount[i - 1] + 1] = i;
+        xcount[i] += xcount[i - 1];
+    }
+    for (i = 1; i < ysize; ++i)
+    {
+        if (ycount[i]) yrev[ycount[i - 1] + 1] = i;
+        ycount[i] += ycount[i - 1];
+    }
+
+    
+    static int subrects[rsize][rsize];
+    int mxmin, mymin, mxmax, mymax;
+    for (i = 0; i < rsize; ++i)
+        for (j = 0; j < rsize; ++j) subrects[i][j] = 0;
+    for (i = 0; i < rectcnt; ++i)
+    {
+        mxmin = xcount[rects[i].xmin];
+        mxmax = xcount[rects[i].xmax];
+        mymin = ycount[rects[i].ymin];
+        mymax = ycount[rects[i].ymax];
+        subrects[mxmin][mymin]++;
+        subrects[mxmin][mymax]--;
+        subrects[mxmax][mymin]--;
+        subrects[mxmax][mymax]++;
+    }
+    for (i = 1; i < rsize; ++i)
+        for (j = 1; j < rsize; ++j)
+            subrects[i][j] += subrects[i - 1][j] + subrects[i][j - 1] - subrects[i - 1][j - 1];
+    mxmin = xcount[updrect.xmin];
+    mxmax = xcount[updrect.xmax];
+    mymin = ycount[updrect.ymin];
+    mymax = ycount[updrect.ymax];
+    int wndwidth = wnd->contents.xmax - wnd->contents.xmin;
+    int wndheight = wnd->contents.ymax - wnd->contents.ymin;
+    for (i = mxmin; i < mxmax; ++i)
+        for (j = mymin; j < mymax; ++j)
+        {
+            if (subrects[i][j] <= 0)
+            {
+                draw24ImagePart(screen_buf2, wnd->content_buf, xrev[i], yrev[j], wndwidth, wndheight,
+                                xrev[i] - wnd->contents.xmin, yrev[i] - wnd->contents.ymin, xrev[i+1]-xrev[i], yrev[j+1]-yrev[j]);
+                clearRectByCoord(screen_buf1, screen_buf2, xrev[i], yrev[j], xrev[i+1], yrev[j+1]);
+                clearRectByCoord(screen, screen_buf1, xrev[i], yrev[j], xrev[i+1], yrev[j+1]);
+            }
+        }
+    
+    drawMouse(screen, 0, wm_mouse_pos.x, wm_mouse_pos.y);
+    
+    release(&wmlock);
 }
 
 //return number of message (0 if buf is empty, 1 if not)

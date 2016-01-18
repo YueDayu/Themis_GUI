@@ -178,6 +178,19 @@ void draw24Image(RGB *buf, RGB *img, int x, int y, int width, int height, int ma
     releaseGUILock(buf);
 }
 
+void draw24ImagePart(RGB *buf, RGB *img, int x, int y, int width, int height, int subx, int suby, int subw, int subh) {
+    int i;
+    RGB *t;
+    RGB *o;
+    acquireGUILock(buf);
+    for (i = 0; i < subh; i++) {
+        t = buf + (y + i) * SCREEN_WIDTH + x;
+        o = img + (height - i - suby) * width;
+        memmove(t, o, subw * 3);
+    }
+    releaseGUILock(buf);
+}
+
 void drawRectBound(RGB *buf, int x, int y, int width, int height, RGBA fill, int max_x, int max_y)
 {
 	int i, j;
