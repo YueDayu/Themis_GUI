@@ -20,7 +20,8 @@ typedef struct window
 	win_rect contents;
 	win_rect titlebar;
 	msg_buf buf;
-	struct spinlock lock;
+	struct RGB *content_buf;
+	int alwaysfront;
 	char title[MAX_TITLE_LEN];
 } window;
 

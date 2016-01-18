@@ -160,7 +160,7 @@ void focusWindow(int handler)
 }
 
 //return window handler on succuss, -1 if unsuccessful
-int createWindow(int width, int height, const char *title)
+int createWindow(int width, int height, const char *title, struct RGB *buf, int alwaysfront)
 {
 	if (emptyhead == -1) return -1;
 	uint len = strlen(title);
@@ -174,8 +174,8 @@ int createWindow(int width, int height, const char *title)
 
 	initqueue(&windowlist[idx].wnd.buf);
 	//initial window position according to idx
-	int offsetX = (100 + idx * 47) % (SCREEN_WIDTH - 100);
-	int offsetY = (100 + idx * 33) % (SCREEN_HEIGHT - 100);
+	int offsetX = (100 + idx * 47) % (SCREEN_WIDTH - 130) + 30;
+	int offsetY = (100 + idx * 33) % (SCREEN_HEIGHT - 130) + 30;
 	if (len == 0 && desktopHandler == -100) {
 		desktopHandler = idx;
 		createRectBySize(&windowlist[idx].wnd.contents, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -186,6 +186,8 @@ int createWindow(int width, int height, const char *title)
 		memmove(windowlist[idx].wnd.title, title, len);
 	}
 	windowlist[idx].proc = proc; // remember current process
+	windowlist[idx].wnd.alwaysfront = alwaysfront;
+	windowlist[idx].wnd.content_buf = buf;
 
     //drawing is completed in focusWindow
 	focusWindow(idx);
@@ -296,6 +298,12 @@ void wmHandleMessage(message *msg)
 	release(&wmlock);
 }
 
+void wmUpdateWindow(int handler, int xmin, int ymin, int width, int height)
+{
+    //TODO
+    cprintf("update window: %d %d %d %d %d\n", handler, xmin, ymin, width, height);
+}
+
 //return number of message (0 if buf is empty, 1 if not)
 int wmGetMessage(int handler, message *res)
 {
@@ -317,10 +325,14 @@ int sys_createwindow()
 {
 	int w, h;
 	char *title;
+	RGB *buf;
+	int af;
 	argint(0, &w);
 	argint(1, &h);
 	argstr(2, &title);
-	return createWindow(w, h, title);
+	argptr(3, (char**)(&buf), sizeof(RGB));
+	argint(4, &af);
+	return createWindow(w, h, title, buf, af);
 }
 
 int sys_destroywindow()
@@ -338,6 +350,18 @@ int sys_getmessage()
 	argint(0, &h);
 	argptr(1, (char**)(&res), sizeof(message));
 	return wmGetMessage(h, res);
+}
+
+int sys_updatewindow()
+{
+    int wd, x, y, w, h;
+    argint(0, &wd);
+    argint(1, &x);
+    argint(2, &y);
+    argint(3, &w);
+    argint(4, &h);
+    wmUpdateWindow(wd, x, y, w, h);
+    return 0;
 }
 
 int sys_draw24Image() {
