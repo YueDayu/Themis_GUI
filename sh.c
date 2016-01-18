@@ -163,8 +163,6 @@ main(void)
   int res = read24BitmapFile("desktop.bmp", image, &h, &w);
   printf(1, "res: %d\n", res);
 
-  hello(image, h, w);
-  
   int hwnd = createwindow(400, 300, "hello window");
   int hwnd2 = createwindow(600, 200, "hello window 2");
   struct message msg;

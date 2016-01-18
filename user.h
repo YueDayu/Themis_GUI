@@ -26,7 +26,6 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
-void hello(struct RGB *, int, int);
 
 // ulib.c
 int stat(char*, struct stat*);
@@ -50,3 +49,5 @@ int read24BitmapFile(char *, struct RGB *, int *, int *);
 int createwindow(int, int, const char *);
 int destroywindow(int);
 int getmessage(int, struct message *);
+
+int draw24Image(int, struct RGB*, int, int, int, int);

@@ -1,9 +1,13 @@
 #include "types.h"
 #include "x86.h"
+#include "param.h"
 #include "defs.h"
 #include "msg.h"
 #include "spinlock.h"
 #include "gui_base.h"
+#include "memlayout.h"
+#include "mmu.h"
+#include "proc.h"
 
 #include "window_manager.h"
 
@@ -50,6 +54,7 @@ void initqueue(msg_buf *buf)
 //linked-list of windows
 static struct
 {
+	struct proc* proc;
 	window wnd;
 	int next, prev;
 } windowlist[MAX_WINDOW_CNT];
@@ -61,6 +66,7 @@ static struct
 
 
 static int windowlisthead, emptyhead;
+static int desktopHandler = -100;
 static int focus;
 
 struct spinlock wmlock;
@@ -119,10 +125,14 @@ void drawWindow(int layer, int handler)
     else if (layer == 1) dst = screen_buf1;
     else dst = screen;
 
-    drawRectByCoord(dst, wnd->titlebar.xmin, wnd->titlebar.ymin, wnd->titlebar.xmax, wnd->contents.ymax + 3, barcolor);
-    drawRectByCoord(dst, wnd->titlebar.xmax - 30, wnd->titlebar.ymin, wnd->titlebar.xmax - 3, wnd->titlebar.ymax, closecolor);
-    drawRectByCoord(dst, wnd->contents.xmin, wnd->contents.ymin, wnd->contents.xmax, wnd->contents.ymax, wndcolor);
-    drawString(dst, wnd->titlebar.xmin + 5, wnd->titlebar.ymin + 3, wnd->title, txtcolor);
+	if (handler != desktopHandler) {
+		drawRectByCoord(dst, wnd->titlebar.xmin, wnd->titlebar.ymin, wnd->titlebar.xmax, wnd->contents.ymax + 3,
+						barcolor);
+		drawRectByCoord(dst, wnd->titlebar.xmax - 30, wnd->titlebar.ymin, wnd->titlebar.xmax - 3, wnd->titlebar.ymax,
+						closecolor);
+		drawRectByCoord(dst, wnd->contents.xmin, wnd->contents.ymin, wnd->contents.xmax, wnd->contents.ymax, wndcolor);
+		drawString(dst, wnd->titlebar.xmin + 5, wnd->titlebar.ymin + 3, wnd->title, txtcolor);
+	}
 
     if (layer >= 2)
         clearRectByCoord(screen_buf1, screen_buf2, wnd->titlebar.xmin, wnd->titlebar.ymin, wnd->titlebar.xmax, wnd->contents.ymax + 3);
@@ -134,8 +144,10 @@ void drawWindow(int layer, int handler)
 
 void focusWindow(int handler)
 {
-	removeFromList(&windowlisthead, handler);
-	addToListHead(&windowlisthead, handler);
+	if (handler != desktopHandler) {
+		removeFromList(&windowlisthead, handler);
+		addToListHead(&windowlisthead, handler);
+	}
 
 	//redraw all occluded window
 	int p, q;
@@ -164,9 +176,16 @@ int createWindow(int width, int height, const char *title)
 	//initial window position according to idx
 	int offsetX = (100 + idx * 47) % (SCREEN_WIDTH - 100);
 	int offsetY = (100 + idx * 33) % (SCREEN_HEIGHT - 100);
-	createRectBySize(&windowlist[idx].wnd.contents, offsetX, offsetY, width, height);
-	createRectBySize(&windowlist[idx].wnd.titlebar, offsetX - 3, offsetY - 20, width + 6, 20);
-	memmove(windowlist[idx].wnd.title, title, len);
+	if (len == 0 && desktopHandler == -100) {
+		desktopHandler = idx;
+		createRectBySize(&windowlist[idx].wnd.contents, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+		createRectBySize(&windowlist[idx].wnd.titlebar, 0, 0, SCREEN_WIDTH, 0);
+	} else {
+		createRectBySize(&windowlist[idx].wnd.contents, offsetX, offsetY, width, height);
+		createRectBySize(&windowlist[idx].wnd.titlebar, offsetX - 3, offsetY - 20, width + 6, 20);
+		memmove(windowlist[idx].wnd.title, title, len);
+	}
+	windowlist[idx].proc = proc; // remember current process
 
     //drawing is completed in focusWindow
 	focusWindow(idx);
@@ -280,14 +299,19 @@ void wmHandleMessage(message *msg)
 //return number of message (0 if buf is empty, 1 if not)
 int wmGetMessage(int handler, message *res)
 {
+	if (handler < 0 || handler >= MAX_WINDOW_CNT) {
+		return 0;
+	}
+	// TODO: I'm not sure... Maybe 'proc' means porcess which is running; so this if can verify the handler.
+	if (proc != windowlist[handler].proc) {
+		return 0;
+	}
 	acquire(&wmlock);
-	//TODO check handler valid
 	int ret = dequeue(&windowlist[handler].wnd.buf, res);
 	release(&wmlock);
 	if (ret) return 0;
 	else return 1;
 }
-
 
 int sys_createwindow()
 {
@@ -316,3 +340,24 @@ int sys_getmessage()
 	return wmGetMessage(h, res);
 }
 
+int sys_draw24Image() {
+	int handler;
+	int i;
+	RGB *image;
+	int width, height;
+	int x, y;
+	argint(0, &handler);
+	argint(1, &i);
+	image = (RGB *) i;
+	argint(2, &x);
+	argint(3, &y);
+	argint(4, &width);
+	argint(5, &height);
+	if (handler < 0 || handler >= MAX_WINDOW_CNT) {
+		return 1;
+	}
+	window *wnd = &windowlist[handler].wnd;
+	draw24Image(screen_buf1, image, x + wnd->contents.xmin, y + wnd->contents.ymin,
+				width, height, wnd->contents.xmax, wnd->contents.ymax);
+	return 0;
+}
