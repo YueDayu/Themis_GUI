@@ -549,56 +549,69 @@ void drawTextAreaWidget(window *win, int index) {
 void drawFileListWidget(window *win, int index) {
     Widget *w = &(win->widgets[index]);
 
-    if (w->context.fileList->direction == 0) {
-        int max_num_y = w->size.height / ICON_VIEW_SIZE;
-        int max_num_x = w->size.width / ICON_VIEW_SIZE;
-        int offset_y = w->size.height % ICON_VIEW_SIZE / max_num_y;
-        int offset_x = w->size.width % ICON_VIEW_SIZE / max_num_x;
-        int current_x = 0;
-        int current_y = 0;
-        IconView *p = w->context.fileList->file_list;
-        int i;
-        RGBA black;
-        black.A = 255; black.R = 0; black.G = 0; black.B = 0;
-        for (i = 0; i < w->context.fileList->file_num; i++) {
-            drawImage(win, p->image, offset_x + current_x * ICON_VIEW_SIZE + 13,
-                      offset_y + current_y * ICON_VIEW_SIZE + 4, ICON_IMG_SIZE, ICON_IMG_SIZE);
-            if (strlen(p->text) <= 9) {
-                drawString(win, offset_x + current_x * ICON_VIEW_SIZE + (9 - strlen(p->text)) * 9 / 2 + 5,
-                           offset_y + current_y * ICON_VIEW_SIZE + 4 + ICON_IMG_SIZE, p->text, black,
-                           ICON_VIEW_SIZE - 2);
-            } else {
-                char temp[10];
-                int j;
-                for (j = 0; j < 9; j++) {
-                    temp[j] = p->text[j];
-                }
-                temp[9] = '\0';
-                drawString(win, offset_x + current_x * ICON_VIEW_SIZE + 5,
-                           offset_y + current_y * ICON_VIEW_SIZE + ICON_IMG_SIZE, temp,
-                           black, ICON_VIEW_SIZE - 2);
-                for (j = 0; j < 9; j++) {
-                    if (!p->text[j + 9]) {
-                        break;
-                    }
-                    temp[j] = p->text[j + 9];
-                }
-                temp[j] = '\0';
-                drawString(win, offset_x + current_x * ICON_VIEW_SIZE + (9 - strlen(temp)) * 9 / 2 + 5,
-                           offset_y + current_y * ICON_VIEW_SIZE + ICON_IMG_SIZE + 16, temp,
-                           black, ICON_VIEW_SIZE - 2);
+    int max_num_y = w->size.height / ICON_VIEW_SIZE;
+    int max_num_x = w->size.width / ICON_VIEW_SIZE;
+    int offset_y = w->size.height % ICON_VIEW_SIZE / max_num_y;
+    int offset_x = w->size.width % ICON_VIEW_SIZE / max_num_x;
+    int current_x = 0;
+    int current_y = 0;
+
+    IconView *p = w->context.fileList->file_list;
+    int i;
+    RGBA black;
+    black.A = 255; black.R = 0; black.G = 0; black.B = 0;
+    for (i = 0; i < w->context.fileList->file_num; i++) {
+        drawImage(win, p->image, offset_x + current_x * ICON_VIEW_SIZE + 13,
+                  offset_y + current_y * ICON_VIEW_SIZE + 4, ICON_IMG_SIZE, ICON_IMG_SIZE);
+        if (strlen(p->text) <= 9) {
+            drawString(win, offset_x + current_x * ICON_VIEW_SIZE + (9 - strlen(p->text)) * 9 / 2 + 5,
+                       offset_y + current_y * ICON_VIEW_SIZE + 4 + ICON_IMG_SIZE, p->text, black,
+                       ICON_VIEW_SIZE - 2);
+        } else {
+            char temp[10];
+            int j;
+            for (j = 0; j < 9; j++) {
+                temp[j] = p->text[j];
             }
-            current_y++;
-            p = p->next;
-            if (current_y >= max_num_y) {
-                current_y = 0;
-                current_x ++;
-                if (current_x >= max_num_x) {
+            temp[9] = '\0';
+            drawString(win, offset_x + current_x * ICON_VIEW_SIZE + 5,
+                       offset_y + current_y * ICON_VIEW_SIZE + ICON_IMG_SIZE, temp,
+                       black, ICON_VIEW_SIZE - 2);
+            for (j = 0; j < 9; j++) {
+                if (!p->text[j + 9]) {
                     break;
                 }
+                temp[j] = p->text[j + 9];
             }
+            temp[j] = '\0';
+            drawString(win, offset_x + current_x * ICON_VIEW_SIZE + (9 - strlen(temp)) * 9 / 2 + 5,
+                       offset_y + current_y * ICON_VIEW_SIZE + ICON_IMG_SIZE + 16, temp,
+                       black, ICON_VIEW_SIZE - 2);
+        }
+        if (w->context.fileList->direction == 0) {
+	        current_y++;
+	        p = p->next;
+	        if (current_y >= max_num_y) {
+	            current_y = 0;
+	            current_x ++;
+	            if (current_x >= max_num_x) {
+	                break;
+	            }
+	        }
+        }
+        else {
+        	current_x++;
+        	p = p->next;
+        	if (current_x >= max_num_x) {
+        		current_x = 0;
+        		current_y++;
+        		if (current_y >= max_num_y) {
+        			break;
+        		}
+        	}
         }
     }
+
 }
 
 void drawAllWidget(window *win) {
@@ -656,36 +669,50 @@ void textAreaKeyDownHandler(window *win, int index, message *msg) {
 
 void fileListDoubleClickHandler(window *win, int index, message *msg) {
     Widget *w = &(win->widgets[index]);
+
+    int max_num_y = w->size.height / ICON_VIEW_SIZE;
+    int max_num_x = w->size.width / ICON_VIEW_SIZE;
+    int offset_y = w->size.height % ICON_VIEW_SIZE / max_num_y;
+    int offset_x = w->size.width % ICON_VIEW_SIZE / max_num_x;
+    int current_x = (msg->params[0] - offset_x) / ICON_VIEW_SIZE;
+    int current_y = (msg->params[1] - offset_y) / ICON_VIEW_SIZE;
+    int calcu_index;
+
     if (w->context.fileList->direction == 0) { // on the desktop
-        int max_num_y = w->size.height / ICON_VIEW_SIZE;
-        int max_num_x = w->size.width / ICON_VIEW_SIZE;
-        int offset_y = w->size.height % ICON_VIEW_SIZE / max_num_y;
-        int offset_x = w->size.width % ICON_VIEW_SIZE / max_num_x;
-        int current_x = (msg->params[0] - offset_x) / ICON_VIEW_SIZE;
-        int current_y = (msg->params[1] - offset_y) / ICON_VIEW_SIZE;
-        int calcu_index = current_x * max_num_y + current_y;
-        if (calcu_index < w->context.fileList->file_num) {
-            IconView *p = w->context.fileList->file_list;
-            int i;
-            for (i = 0; i < calcu_index; i++) {
-                p = p->next;
+        calcu_index = current_x * max_num_y + current_y;
+    }
+    else {
+    	calcu_index = current_y * max_num_x + current_x;
+    }
+    if (calcu_index < w->context.fileList->file_num) {
+        IconView *p = w->context.fileList->file_list;
+        int i;
+        for (i = 0; i < calcu_index; i++) {
+            p = p->next;
+        }
+        char t[20];
+        UI_suffix(t, p->text);
+        if (strcmp(t, "bmp") == 0) {
+            if (fork() == 0)
+            {
+                char *argv2[] = { "image_viewer", p->text, 0};
+                exec(argv2[0], argv2);
+                exit();
             }
-            char t[20];
-            UI_suffix(t, p->text);
-            if (strcmp(t, "bmp") == 0) {
-                if (fork() == 0)
-                {
-                    char *argv2[] = { "image_viewer", p->text, 0};
-                    exec(argv2[0], argv2);
-                    exit();
-                }
-            } else if (strcmp(t, "txt") == 0) {
-                if (fork() == 0)
-                {
-                    char *argv2[] = { "Editor", p->text, 0};
-                    exec(argv2[0], argv2);
-                    exit();
-                }
+        }
+        else if (strcmp(t, "") == 0) {
+            if (fork() == 0)
+            {
+                char *argv2[] = { p->text, 0 };
+                exec(argv2[0], argv2);
+                exit();
+            }
+        } else if (strcmp(t, "") == 0) {
+            if (fork() == 0)
+            {
+                char *argv2[] = { "Editor", p->text, 0};
+                exec(argv2[0], argv2);
+                exit();
             }
         }
     }
