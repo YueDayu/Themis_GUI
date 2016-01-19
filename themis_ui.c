@@ -15,6 +15,8 @@ void drawInputWidget(window *win, int index);
 void drawTextAreaWidget(window *win, int index);
 void drawFileListWidget(window *win, int index);
 
+void fileListDoubleClickHandler(window *win, int index, message *msg);
+
 char file_image_path[FILE_TYPE_NUM][MAX_SHORT_STRLEN] = {"explorer.bmp",
                                                          "txt.bmp",
                                                          "pic.bmp",
@@ -216,7 +218,7 @@ void UI_ls(char *path, Widget *widget)
         }
         tmpName = UI_fmtname(buf);
         if (strcmp(tmpName, ".") == 0 || strcmp(tmpName, "..") == 0 || strcmp(tmpName, "desktop") == 0
-            || st.type == T_DEV) {
+            || st.type == T_DEV || strcmp(tmpName, "desktop.bmp") == 0) {
             continue;
         }
         IconView *iconView = malloc(sizeof(IconView));
@@ -277,6 +279,7 @@ int addFileListWidget(window *win, char *path, int direction, int x, int y, int 
         }
     }
     // TODO: set default handler
+    f->onDoubleClick = fileListDoubleClickHandler;
     Widget *widget = &win->widgets[win->widget_number];
     widget->paint = drawFileListWidget;
     widget->context.fileList = f;
@@ -569,3 +572,40 @@ void drawAllWidget(window *win) {
     updatewindow(win->handler, 0, 0, win->width, win->height);
 }
 
+void fileListDoubleClickHandler(window *win, int index, message *msg) {
+    Widget *w = &(win->widgets[index]);
+    if (w->context.fileList->direction == 0) { // on the desktop
+        int max_num_y = w->size.height / ICON_VIEW_SIZE;
+        int max_num_x = w->size.width / ICON_VIEW_SIZE;
+        int offset_y = w->size.height % ICON_VIEW_SIZE / max_num_y;
+        int offset_x = w->size.width % ICON_VIEW_SIZE / max_num_x;
+        int current_x = (msg->params[0] - offset_x) / ICON_VIEW_SIZE;
+        int current_y = (msg->params[1] - offset_y) / ICON_VIEW_SIZE;
+        int calcu_index = current_x * max_num_y + current_y;
+        if (calcu_index < w->context.fileList->file_num) {
+            IconView *p = w->context.fileList->file_list;
+            int i;
+            for (i = 0; i < calcu_index; i++) {
+                p = p->next;
+            }
+            printf(1, "%s\n", p->text);
+        }
+    }
+}
+
+void mainLoop(window *win) {
+    message msg;
+    while (1) {
+        if (getmessage(win->handler, &msg)) {
+            if (msg.msg_type == M_MOUSE_DOWN) {
+                int i;
+                for (i = 0; i < win->widget_number; i++) {
+                    if (win->widgets[i].type == FILE_LIST) {
+                        win->widgets[i].context.fileList->onDoubleClick(win, i, &msg);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}

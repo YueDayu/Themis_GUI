@@ -5,9 +5,9 @@
 #include "user.h"
 #include "fcntl.h"
 
-RGB image[800 * 600];
+RGB image[64 * 64];
 
-int main() {
+int main(int argc, char *argv[]) {
     int h, w;
     window desktop;
     desktop.width = MAX_WIDTH;
@@ -25,12 +25,12 @@ int main() {
 //    addLabelWidget(&desktop, color, "Hello World", 100, 100, 100, 20);
     addFileListWidget(&desktop, "/", 0, 0, 0, MAX_WIDTH, MAX_HEIGHT - 25);
 
-	window testwindow;
+    window testwindow;
     testwindow.width = 300;
     testwindow.height = 200;
     UI_createWindow(&testwindow, "test window", 0);
 
-	window testwindow2;
+    window testwindow2;
     testwindow2.width = 600;
     testwindow2.height = 100;
     UI_createWindow(&testwindow2, "test window 2", 0);
@@ -38,7 +38,7 @@ int main() {
 
     drawAllWidget(&desktop);
 
-    mainLoop(&desktop);
+//    mainLoop(&desktop);
 
 
     while(1);;
