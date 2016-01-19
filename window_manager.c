@@ -157,10 +157,14 @@ void drawWindow(int layer, int handler, int refresh)
 
 	if (handler != desktopHandler) drawWindowBar(dst, wnd, barcolor);
 
+	switchuvm(windowlist[handler].proc);
     draw24ImagePart(dst, wnd->content_buf, wnd->contents.xmin, wnd->contents.ymin,
                     wnd->contents.xmax - wnd->contents.xmin, wnd->contents.ymax - wnd->contents.ymin,
                     0, 0, wnd->contents.xmax - wnd->contents.xmin, wnd->contents.ymax - wnd->contents.ymin);
-
+	if (proc == 0)
+		switchkvm();
+	else
+		switchuvm(proc);
         
     if (refresh)
     {
