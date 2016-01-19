@@ -221,7 +221,7 @@ void UI_ls(char *path, Widget *widget)
         }
         tmpName = UI_fmtname(buf);
         if (strcmp(tmpName, ".") == 0 || strcmp(tmpName, "..") == 0 || strcmp(tmpName, "desktop") == 0
-            || st.type == T_DEV || strcmp(tmpName, "desktop.bmp") == 0) {
+            || st.type == T_DEV || strcmp(tmpName, "desktop.bmp") == 0 || strcmp(tmpName, "init") == 0) {
             continue;
         }
         IconView *iconView = malloc(sizeof(IconView));

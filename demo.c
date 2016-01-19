@@ -21,9 +21,9 @@ int main(int argc, char *argv[]) {
             for (j = 0; j < 400; ++j)
             {
                 RGB * t = demo.window_buf + (i * 400) + j;
-                t->R = (i * j + step) % 255;
+                t->R = (i + j + step) % 255;
                 t->B = (i + step) % 200 + 25;
-                t->G = (i * j + step) % 100 + 100;
+                t->G = (step - j) % 100 + 100;
             }
 
         step++;
