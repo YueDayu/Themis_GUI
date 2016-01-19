@@ -566,7 +566,7 @@ void drawFileListWidget(window *win, int index) {
         else {
         	current_x++;
         	p = p->next;
-        	if (current_x >= max_mum_x) {
+        	if (current_x >= max_num_x) {
         		current_x = 0;
         		current_y++;
         		if (current_y >= max_num_y) {
@@ -636,6 +636,14 @@ void fileListDoubleClickHandler(window *win, int index, message *msg) {
             if (fork() == 0)
             {
                 char *argv2[] = { "image_viewer", p->text, 0};
+                exec(argv2[0], argv2);
+                exit();
+            }
+        }
+        else if (strcmp(t, "") == 0) {
+            if (fork() == 0)
+            {
+                char *argv2[] = { p->text, 0 };
                 exec(argv2[0], argv2);
                 exit();
             }
