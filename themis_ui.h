@@ -91,6 +91,7 @@ typedef struct FileList {
     RGBA* image[FILE_TYPE_NUM];
     Handler onDoubleClick;
     Handler onLeftClick;
+    Handler onFileChange;
 } FileList;
 
 typedef union widget_base {

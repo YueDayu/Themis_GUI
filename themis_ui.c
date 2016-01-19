@@ -289,7 +289,7 @@ void drawImage(window *win, RGBA *img, int x, int y, int width, int height) {
                 continue;
             }
             t = win->window_buf + (y + i) * win->width + x + j;
-            o = img + (height - i) * width + j;
+            o = img + (height - i - 1) * width + j;
             drawPointAlpha(t, *o);
         }
     }
