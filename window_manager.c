@@ -74,6 +74,8 @@ static int desktopHandler = -100;
 static int focus;
 static int frontcnt;
 
+static int clickedOnTitle, clickedOnContent;
+
 struct spinlock wmlock;
 
 void addToListHead(int *head, int idx)
@@ -113,6 +115,8 @@ void wmInit()
 	wm_last_mouse_pos = wm_mouse_pos;
 	
 	frontcnt = 0;
+	focus = -1;
+	clickedOnTitle = clickedOnContent = 0;
 
 	initlock(&wmlock, "wmlock");
 }
@@ -128,39 +132,36 @@ void getWindowRect(int handler, win_rect *res)
 
 void drawWindowBar(struct RGB *dst, window *wnd, struct RGBA barcolor)
 {  
-    struct RGBA closecolor;
+    struct RGBA closecolor, txtcolor;
     closecolor.R = 200; closecolor.G = 50; closecolor.B = 10; closecolor.A = 255;
+    txtcolor.R = txtcolor.G = txtcolor.B = txtcolor.A = 255;
     drawRectByCoord(dst, wnd->titlebar.xmin, wnd->titlebar.ymin, wnd->titlebar.xmax - 30, wnd->titlebar.ymax, barcolor);
     drawRectByCoord(dst, wnd->titlebar.xmax - 30, wnd->titlebar.ymin, wnd->titlebar.xmax - 3, wnd->titlebar.ymax, closecolor);
     drawRectByCoord(dst, wnd->titlebar.xmax - 3, wnd->titlebar.ymin, wnd->titlebar.xmax, wnd->contents.ymax + 3, barcolor);
     drawRectByCoord(dst, wnd->titlebar.xmin, wnd->contents.ymin, wnd->contents.xmin, wnd->contents.ymax + 3, barcolor);
     drawRectByCoord(dst, wnd->contents.xmin, wnd->contents.ymax, wnd->contents.xmax, wnd->contents.ymax + 3, barcolor);
+    drawString(dst, wnd->titlebar.xmin + 5, wnd->titlebar.ymin + 3, wnd->title, txtcolor);
 }
 
 void drawWindow(int layer, int handler, int refresh)
 {
 	window *wnd = &windowlist[handler].wnd;
-    struct RGBA barcolor, wndcolor, txtcolor;
+    struct RGBA barcolor, wndcolor;
     barcolor.R = 170; barcolor.G = 150; barcolor.B = 100; barcolor.A = 255;
     if (layer == 2) barcolor.R = barcolor.G = barcolor.B = 140;
     wndcolor.R = wndcolor.G = wndcolor.B = wndcolor.A = 255;
-    txtcolor = wndcolor;
-
     struct RGB *dst;
     if (layer == 2) dst = screen_buf2;
     else if (layer == 1) dst = screen_buf1;
     else dst = screen;
 
-	if (handler != desktopHandler) {
-	    drawWindowBar(dst, wnd, barcolor);
+	if (handler != desktopHandler) drawWindowBar(dst, wnd, barcolor);
 
-//		drawRectByCoord(dst, wnd->contents.xmin, wnd->contents.ymin, wnd->contents.xmax, wnd->contents.ymax, wndcolor);
-        draw24ImagePart(dst, wnd->content_buf, wnd->contents.xmin, wnd->contents.ymin,
-                        wnd->contents.xmax - wnd->contents.xmin, wnd->contents.ymax - wnd->contents.ymin,
-                        0, 0, wnd->contents.xmax - wnd->contents.xmin, wnd->contents.ymax - wnd->contents.ymin);
-		drawString(dst, wnd->titlebar.xmin + 5, wnd->titlebar.ymin + 3, wnd->title, txtcolor);
-	}
+    draw24ImagePart(dst, wnd->content_buf, wnd->contents.xmin, wnd->contents.ymin,
+                    wnd->contents.xmax - wnd->contents.xmin, wnd->contents.ymax - wnd->contents.ymin,
+                    0, 0, wnd->contents.xmax - wnd->contents.xmin, wnd->contents.ymax - wnd->contents.ymin);
 
+        
     if (refresh)
     {
         if (layer >= 2)
@@ -195,7 +196,6 @@ void focusWindow(int handler)
 	    for (p = windowlisthead; p != -1; p = windowlist[p].next) q = p;
 	    for (p = q; p != windowlisthead; p = windowlist[p].prev) drawWindow(2, p, 0);
 	    clearRect(screen_buf1, screen_buf2, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-	    //if (focus != desktopHandler) refreshWindowScreen(2, focus);
 	    drawWindow(1, windowlisthead, 0);
 	    if (focus != desktopHandler)
 	    {
@@ -211,12 +211,17 @@ void focusWindow(int handler)
 	    }
 	    drawMouse(screen, 0, wm_mouse_pos.x, wm_mouse_pos.y);
 	}
-	else
+	else if (focus != -1)
 	{
 	    struct RGBA gray;
 	    gray.A = 255;
 	    gray.R = gray.G = gray.B = 140;
+	    drawWindowBar(screen_buf1, &windowlist[focus].wnd, gray);
 	    drawWindowBar(screen, &windowlist[focus].wnd, gray);
+	}
+	else
+	{
+	    drawWindow(2, desktopHandler, 1);
 	}
 
 	focus = handler;
@@ -304,6 +309,28 @@ void dispatchMessage(int handler, message *msg)
 	enqueue(&windowlist[handler].wnd.buf, msg);
 }
 
+void moveRect(win_rect *rect, int dx, int dy)
+{
+    rect->xmin += dx;
+    rect->xmax += dx;
+    rect->ymin += dy;
+    rect->ymax += dy;
+}
+
+void wmMoveFocusWindow(int dx, int dy)
+{
+    win_rect winrect;
+    getWindowRect(focus, &winrect);
+    clearRectByCoord(screen_buf1, screen_buf2, winrect.xmin, winrect.ymin, winrect.xmax, winrect.ymax);
+    drawWindow(1, focus, 0);
+    if (dx > 0) winrect.xmax += dx;
+    else winrect.xmin += dx;
+    if (dy > 0) winrect.ymax += dy;
+    else winrect.ymin += dy;
+    clearRectByCoord(screen, screen_buf1, winrect.xmin, winrect.ymin, winrect.xmax, winrect.ymax);
+    drawMouse(screen, 0, wm_mouse_pos.x, wm_mouse_pos.y);
+}
+
 void wmHandleMessage(message *msg)
 {
 	acquire(&wmlock);
@@ -323,6 +350,11 @@ void wmHandleMessage(message *msg)
 		//redraw mouse cursor
 		clearMouse(screen, screen_buf1, wm_last_mouse_pos.x, wm_last_mouse_pos.y);
 		drawMouse(screen, 0, wm_mouse_pos.x, wm_mouse_pos.y);
+		//drag
+		if (clickedOnTitle)
+		{
+		    wmMoveFocusWindow(wm_mouse_pos.x - wm_last_mouse_pos.x, wm_mouse_pos.y - wm_last_mouse_pos.y);
+		}
 		break;
 	case M_MOUSE_DOWN:
 		//handle focus changes
@@ -340,6 +372,7 @@ void wmHandleMessage(message *msg)
 		}
 		if (isInRect(&windowlist[focus].wnd.contents, wm_mouse_pos.x, wm_mouse_pos.y))
 		{
+    		clickedOnContent = 1;
 		    newmsg = *msg;
 		    //coordinate transformation (from screen to window)
 		    newmsg.params[0] = wm_mouse_pos.x - windowlist[focus].wnd.contents.xmin;
@@ -351,15 +384,26 @@ void wmHandleMessage(message *msg)
 		{
 		    newmsg.msg_type = WM_WINDOW_CLOSE;
 		    dispatchMessage(focus, &newmsg);
+		} else // titlebar
+		{
+		    clickedOnTitle = 1;
 		}
 		break;
 	case M_MOUSE_UP:
-		//TODO
-		newmsg = *msg;
-	    newmsg.params[0] = wm_mouse_pos.x - windowlist[focus].wnd.contents.xmin;
-	    newmsg.params[1] = wm_mouse_pos.y - windowlist[focus].wnd.contents.ymin;
-	    newmsg.params[2] = msg->params[0];
-		dispatchMessage(focus, &newmsg);
+		if (clickedOnContent)
+		{
+		    clickedOnContent = 0;
+		    newmsg = *msg;
+	        newmsg.params[0] = wm_mouse_pos.x - windowlist[focus].wnd.contents.xmin;
+	        newmsg.params[1] = wm_mouse_pos.y - windowlist[focus].wnd.contents.ymin;
+	        newmsg.params[2] = msg->params[0];
+		    dispatchMessage(focus, &newmsg);
+		}
+		else if (clickedOnTitle)
+		{
+		    //TODO drag
+		    clickedOnTitle = 0;
+		}
 		break;
 	case M_KEY_DOWN:
 		dispatchMessage(focus, msg);
@@ -372,6 +416,16 @@ void wmHandleMessage(message *msg)
 	}
 
 	release(&wmlock);
+}
+
+int hasIntersection(win_rect *ra, win_rect *rb)
+{
+    int xmin = max(ra->xmin, rb->xmin);
+    int ymin = max(ra->ymin, rb->ymin);
+    int xmax = min(ra->xmax, rb->xmax);
+    int ymax = min(ra->ymax, rb->ymax);
+    if (xmin < xmax && ymin < ymax) return 1;
+    else return 0;
 }
 
 void wmUpdateWindow(int handler, int xmin, int ymin, int width, int height)
@@ -466,15 +520,23 @@ void wmUpdateWindow(int handler, int xmin, int ymin, int width, int height)
     mymax = ycount[updrect.ymax];
     int wndwidth = wnd->contents.xmax - wnd->contents.xmin;
     int wndheight = wnd->contents.ymax - wnd->contents.ymin;
+    win_rect cursubrect;
     for (i = mxmin; i < mxmax; ++i)
         for (j = mymin; j < mymax; ++j)
         {
+            cursubrect.xmin = xrev[i]; cursubrect.xmax = xrev[i + 1];
+            cursubrect.ymin = yrev[j]; cursubrect.ymax = yrev[j + 1];
             if (subrects[i][j] <= 0)
             {
                 draw24ImagePart(screen_buf2, wnd->content_buf, xrev[i], yrev[j], wndwidth, wndheight,
                                 xrev[i] - wnd->contents.xmin, yrev[j] - wnd->contents.ymin, xrev[i+1]-xrev[i], yrev[j+1]-yrev[j]);
                 clearRectByCoord(screen_buf1, screen_buf2, xrev[i], yrev[j], xrev[i+1], yrev[j+1]);
                 clearRectByCoord(screen, screen_buf1, xrev[i], yrev[j], xrev[i+1], yrev[j+1]);
+            }
+            else if (subrects[i][j] == 1 && hasIntersection(&rects[0], &cursubrect))
+            {
+                draw24ImagePart(screen_buf2, wnd->content_buf, xrev[i], yrev[j], wndwidth, wndheight,
+                                xrev[i] - wnd->contents.xmin, yrev[j] - wnd->contents.ymin, xrev[i+1]-xrev[i], yrev[j+1]-yrev[j]);
             }
         }
     
