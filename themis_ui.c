@@ -524,7 +524,7 @@ void drawFileListWidget(window *win, int index) {
             drawImage(win, p->image, offset_x + current_x * ICON_VIEW_SIZE + 13,
                       offset_y + current_y * ICON_VIEW_SIZE + 4, ICON_IMG_SIZE, ICON_IMG_SIZE);
             if (strlen(p->text) <= 9) {
-                drawString(win, offset_x + current_x * ICON_VIEW_SIZE + (9 - strlen(p->text)) * 9 / 2,
+                drawString(win, offset_x + current_x * ICON_VIEW_SIZE + (9 - strlen(p->text)) * 9 / 2 + 5,
                            offset_y + current_y * ICON_VIEW_SIZE + 4 + ICON_IMG_SIZE, p->text, black,
                            ICON_VIEW_SIZE - 2);
             } else {
@@ -534,7 +534,7 @@ void drawFileListWidget(window *win, int index) {
                     temp[j] = p->text[j];
                 }
                 temp[9] = '\0';
-                drawString(win, offset_x + current_x * ICON_VIEW_SIZE,
+                drawString(win, offset_x + current_x * ICON_VIEW_SIZE + 5,
                            offset_y + current_y * ICON_VIEW_SIZE + ICON_IMG_SIZE, temp,
                            black, ICON_VIEW_SIZE - 2);
                 for (j = 0; j < 9; j++) {
@@ -544,7 +544,7 @@ void drawFileListWidget(window *win, int index) {
                     temp[j] = p->text[j + 9];
                 }
                 temp[j] = '\0';
-                drawString(win, offset_x + current_x * ICON_VIEW_SIZE + (9 - strlen(temp)) * 9 / 2,
+                drawString(win, offset_x + current_x * ICON_VIEW_SIZE + (9 - strlen(temp)) * 9 / 2 + 5,
                            offset_y + current_y * ICON_VIEW_SIZE + ICON_IMG_SIZE + 16, temp,
                            black, ICON_VIEW_SIZE - 2);
             }

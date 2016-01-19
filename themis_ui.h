@@ -85,7 +85,6 @@ typedef struct IconView {
 // TODO: I don't know...
 typedef struct FileList {
     int direction;
-//    char scrollable;
     IconView *file_list;
     int file_num;
     char path[MAX_LONG_STRLEN];
