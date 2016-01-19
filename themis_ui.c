@@ -69,13 +69,13 @@ void UI_destroyWindow(window *win) {
         if (win->widgets[i].type == FILE_LIST) {
             IconView *p;
             IconView *temp;
-            int j;
-            for (j = 0; j < FILE_TYPE_NUM; j++) {
-                free(win->widgets[i].context.fileList->image[i]);
-            }
             for (p = win->widgets[i].context.fileList->file_list; p; p = temp) {
                 temp = p->next;
                 free(p);
+            }
+            int j;
+            for (j = 0; j < FILE_TYPE_NUM; j++) {
+                free(win->widgets[i].context.fileList->image[j]);
             }
         }
         freeWidget(&win->widgets[i]);
