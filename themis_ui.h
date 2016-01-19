@@ -40,6 +40,7 @@ typedef struct widget_size {
 #define UNKNOWN_FILE 5
 
 #define ICON_IMG_SIZE 64
+#define ICON_VIEW_SIZE 90
 
 typedef struct Image {
     struct RGB *image;
@@ -83,8 +84,8 @@ typedef struct IconView {
 
 // TODO: I don't know...
 typedef struct FileList {
-    char direction;
-    char scrollable;
+    int direction;
+//    char scrollable;
     IconView *file_list;
     int file_num;
     char path[MAX_LONG_STRLEN];

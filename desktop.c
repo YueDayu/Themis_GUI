@@ -15,14 +15,15 @@ int main() {
     UI_createWindow(&desktop, "", 0);
     int res = read24BitmapFile("desktop.bmp", image, &h, &w);
     printf(1, "res: %d\n", res);
-    RGBA color;
-    color.A = 155;
-    color.R = 155;
-    color.G = 155;
-    color.B = 255;
+//    RGBA color;
+//    color.A = 155;
+//    color.R = 155;
+//    color.G = 155;
+//    color.B = 255;
 
     addImageWidget(&desktop, image, 0, 0, MAX_WIDTH, MAX_HEIGHT);
-    addLabelWidget(&desktop, color, "Hello World", 100, 100, 100, 20);
+//    addLabelWidget(&desktop, color, "Hello World", 100, 100, 100, 20);
+    addFileListWidget(&desktop, "/", 0, 0, 0, MAX_WIDTH, MAX_HEIGHT - 25);
 
     drawAllWidget(&desktop);
 

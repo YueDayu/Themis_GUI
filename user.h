@@ -63,5 +63,5 @@ int addLabelWidget(struct window *, struct RGBA, char *, int, int, int, int);
 int addButtonWidget(struct window *, struct RGBA, struct RGBA, char *, Handler, int, int, int, int);
 int addInputWidget(struct window *, struct RGBA, char *, int, int, int, int);
 int addTextAreaWidget(struct window *, struct RGBA, char *, int, int, int, int);
-int addFileListWidget(struct window *, char *, char, char, int, int, int, int);
+int addFileListWidget(struct window *, char *, int, int, int, int, int);
 void drawAllWidget(struct window *);

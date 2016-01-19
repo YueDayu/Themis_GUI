@@ -161,24 +161,11 @@ mkfs: mkfs.c fs.h
 .PRECIOUS: %.o
 
 UPROGS=\
-	_cat\
-	_echo\
-	_forktest\
-	_grep\
 	_init\
-	_kill\
-	_ln\
-	_ls\
-	_mkdir\
-	_rm\
 	_desktop\
-	_stressfs\
-	_usertests\
-	_wc\
-	_zombie\
 
-fs.img: mkfs README desktop.bmp $(UPROGS)
-	./mkfs fs.img README desktop.bmp $(UPROGS)
+fs.img: mkfs README desktop.bmp explorer.bmp txt.bmp pic.bmp exec.bmp folder.bmp unknow.bmp $(UPROGS)
+	./mkfs fs.img README desktop.bmp explorer.bmp txt.bmp pic.bmp exec.bmp folder.bmp unknow.bmp $(UPROGS)
 
 -include *.d
 

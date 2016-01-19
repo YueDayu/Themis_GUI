@@ -1,10 +1,12 @@
 #include "types.h"
+#include "stat.h"
 #include "color.h"
 #include "msg.h"
 #include "user.h"
 #include "fcntl.h"
 #include "themis_ui.h"
 #include "character.h"
+#include "fs.h"
 
 void drawImageWidget(window *win, int index);
 void drawLabelWidget(window *win, int index);
@@ -176,19 +178,95 @@ int addTextAreaWidget(window *win, RGBA c, char *text, int x, int y, int w, int 
     return (win->widget_number - 1);
 }
 
-int addFileListWidget(window *win, char *path, char direction, char scrollable, int x, int y, int w, int h) {
+char* UI_fmtname(char *path)
+{
+    char *p;
+    // Find first character after last slash.
+    for(p=path+strlen(path); p >= path && *p != '/'; p--)
+        ;
+    p++;
+    return p;
+}
+
+void UI_ls(char *path, Widget *widget)
+{
+    char buf[512], *p, *tmpName;
+    int fd;
+    struct dirent de;
+    struct stat st;
+    IconView *node = 0;
+    int j;
+    if ((fd = open(path, 0)) < 0) {
+        return;
+    }
+    if (fstat(fd, &st) < 0) {
+        return;
+    }
+    strcpy(buf, path);
+    p = buf + strlen(buf);
+    *p++ = '/';
+    while (read(fd, &de, sizeof(de)) == sizeof(de)) {
+        if (de.inum == 0) {
+            continue;
+        }
+        memmove(p, de.name, DIRSIZ);
+        p[DIRSIZ] = 0;
+        if (stat(buf, &st) < 0) {
+            continue;
+        }
+        tmpName = UI_fmtname(buf);
+        if (strcmp(tmpName, ".") == 0 || strcmp(tmpName, "..") == 0 || strcmp(tmpName, "desktop") == 0
+            || st.type == T_DEV) {
+            continue;
+        }
+        IconView *iconView = malloc(sizeof(IconView));
+        iconView->next = 0;
+        for (j = 0; j < strlen(tmpName); j++) {
+            if (tmpName[j] == '.')
+                break;
+        }
+        switch (st.type) {
+            case T_DIR:
+                iconView->image = widget->context.fileList->image[FOLDER_FILE];
+                break;
+            case T_FILE:
+                if (strcmp(tmpName, "README") == 0)
+                    iconView->image = widget->context.fileList->image[UNKNOWN_FILE];
+                else if (tmpName[j+1] == 'b' && tmpName[j+2] == 'm' && tmpName[j+3] == 'p')
+                    iconView->image = widget->context.fileList->image[BMP_FILE];
+                else if (tmpName[j+1] == 't' && tmpName[j+2] == 'x' && tmpName[j+3] == 't')
+                    iconView->image = widget->context.fileList->image[TEXT_FILE];
+                else
+                    iconView->image = widget->context.fileList->image[EXEC_FILE];
+                break;
+        }
+        strcpy(iconView->text, tmpName);
+        if (!widget->context.fileList->file_list) {
+            widget->context.fileList->file_list = iconView;
+        }
+        if (!node) {
+            node = iconView;
+        } else {
+            node->next = iconView;
+            node = iconView;
+        }
+        widget->context.fileList->file_num += 1;
+    }
+}
+
+int addFileListWidget(window *win, char *path, int direction, int x, int y, int w, int h) {
     if (win->widget_number >= MAX_WIDGET) {
         return -1;
     }
     FileList *f = malloc(sizeof(FileList));
     f->direction = direction;
-    f->scrollable = scrollable;
+    f->file_num = 0;
     strcpy(f->path, path);
     int i;
     int res;
     int temp_w, temp_h;
     for (i = 0; i < FILE_TYPE_NUM; i++) { // read file
-        (f->image[i]) = (RGBA *)malloc(ICON_IMG_SIZE * ICON_IMG_SIZE * 3);
+        (f->image[i]) = (RGBA *)malloc(ICON_IMG_SIZE * ICON_IMG_SIZE * 4);
         res = readBitmapFile(file_image_path[i], f->image[i], &temp_h, &temp_w);
         if (res < 0) {
             printf(1, "read file image error \n");
@@ -198,13 +276,13 @@ int addFileListWidget(window *win, char *path, char direction, char scrollable, 
             return -1;
         }
     }
-    // TODO: read file list and add to queue
     // TODO: set default handler
     Widget *widget = &win->widgets[win->widget_number];
     widget->paint = drawFileListWidget;
     widget->context.fileList = f;
     widget->type = FILE_LIST;
     setWidgetSize(widget, x, y, w, h);
+    UI_ls(path, widget);
     win->widget_number++;
     return (win->widget_number - 1);
 }
@@ -429,6 +507,58 @@ void drawTextAreaWidget(window *win, int index) {
 }
 
 void drawFileListWidget(window *win, int index) {
+    Widget *w = &(win->widgets[index]);
+
+    if (w->context.fileList->direction == 0) {
+        int max_num_y = w->size.height / ICON_VIEW_SIZE;
+        int max_num_x = w->size.width / ICON_VIEW_SIZE;
+        int offset_y = w->size.height % ICON_VIEW_SIZE / max_num_y;
+        int offset_x = w->size.width % ICON_VIEW_SIZE / max_num_x;
+        int current_x = 0;
+        int current_y = 0;
+        IconView *p = w->context.fileList->file_list;
+        int i;
+        RGBA black;
+        black.A = 255; black.R = 0; black.G = 0; black.B = 0;
+        for (i = 0; i < w->context.fileList->file_num; i++) {
+            drawImage(win, p->image, offset_x + current_x * ICON_VIEW_SIZE + 13,
+                      offset_y + current_y * ICON_VIEW_SIZE + 4, ICON_IMG_SIZE, ICON_IMG_SIZE);
+            if (strlen(p->text) <= 9) {
+                drawString(win, offset_x + current_x * ICON_VIEW_SIZE + (9 - strlen(p->text)) * 9 / 2,
+                           offset_y + current_y * ICON_VIEW_SIZE + 4 + ICON_IMG_SIZE, p->text, black,
+                           ICON_VIEW_SIZE - 2);
+            } else {
+                char temp[10];
+                int j;
+                for (j = 0; j < 9; j++) {
+                    temp[j] = p->text[j];
+                }
+                temp[9] = '\0';
+                drawString(win, offset_x + current_x * ICON_VIEW_SIZE,
+                           offset_y + current_y * ICON_VIEW_SIZE + ICON_IMG_SIZE, temp,
+                           black, ICON_VIEW_SIZE - 2);
+                for (j = 0; j < 9; j++) {
+                    if (!p->text[j + 9]) {
+                        break;
+                    }
+                    temp[j] = p->text[j + 9];
+                }
+                temp[j] = '\0';
+                drawString(win, offset_x + current_x * ICON_VIEW_SIZE + (9 - strlen(temp)) * 9 / 2,
+                           offset_y + current_y * ICON_VIEW_SIZE + ICON_IMG_SIZE + 16, temp,
+                           black, ICON_VIEW_SIZE - 2);
+            }
+            current_y++;
+            p = p->next;
+            if (current_y >= max_num_y) {
+                current_y = 0;
+                current_x ++;
+                if (current_x >= max_num_x) {
+                    break;
+                }
+            }
+        }
+    }
 }
 
 void drawAllWidget(window *win) {
@@ -438,3 +568,4 @@ void drawAllWidget(window *win) {
     }
     updatewindow(win->handler, 0, 0, win->width, win->height);
 }
+
