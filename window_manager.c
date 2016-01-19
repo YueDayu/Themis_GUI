@@ -322,6 +322,8 @@ void wmMoveFocusWindow(int dx, int dy)
     win_rect winrect;
     getWindowRect(focus, &winrect);
     clearRectByCoord(screen_buf1, screen_buf2, winrect.xmin, winrect.ymin, winrect.xmax, winrect.ymax);
+    moveRect(&windowlist[focus].wnd.contents, dx, dy);
+    moveRect(&windowlist[focus].wnd.titlebar, dx, dy);
     drawWindow(1, focus, 0);
     if (dx > 0) winrect.xmax += dx;
     else winrect.xmin += dx;
@@ -389,6 +391,36 @@ void wmHandleMessage(message *msg)
 		    clickedOnTitle = 1;
 		}
 		break;
+	case M_MOUSE_LEFT_CLICK:
+	    if (clickedOnContent)
+	    {
+	        clickedOnContent = 0;
+		    newmsg = *msg;
+	        newmsg.params[0] = wm_mouse_pos.x - windowlist[focus].wnd.contents.xmin;
+	        newmsg.params[1] = wm_mouse_pos.y - windowlist[focus].wnd.contents.ymin;
+	        newmsg.params[2] = msg->params[0];
+		    dispatchMessage(focus, &newmsg);
+	    }
+	case M_MOUSE_RIGHT_CLICK:
+		if (clickedOnContent)
+	    {
+	        clickedOnContent = 0;
+		    newmsg = *msg;
+	        newmsg.params[0] = wm_mouse_pos.x - windowlist[focus].wnd.contents.xmin;
+	        newmsg.params[1] = wm_mouse_pos.y - windowlist[focus].wnd.contents.ymin;
+	        newmsg.params[2] = msg->params[0];
+		    dispatchMessage(focus, &newmsg);
+	    }
+	case M_MOUSE_DBCLICK:
+	    if (clickedOnContent)
+	    {
+	        clickedOnContent = 0;
+		    newmsg = *msg;
+	        newmsg.params[0] = wm_mouse_pos.x - windowlist[focus].wnd.contents.xmin;
+	        newmsg.params[1] = wm_mouse_pos.y - windowlist[focus].wnd.contents.ymin;
+	        newmsg.params[2] = msg->params[0];
+		    dispatchMessage(focus, &newmsg);
+	    }
 	case M_MOUSE_UP:
 		if (clickedOnContent)
 		{
@@ -401,7 +433,6 @@ void wmHandleMessage(message *msg)
 		}
 		else if (clickedOnTitle)
 		{
-		    //TODO drag
 		    clickedOnTitle = 0;
 		}
 		break;

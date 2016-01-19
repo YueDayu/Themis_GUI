@@ -124,7 +124,7 @@ void            mpstartthem(void);
 
 // mouse.c
 void            mouseinit(void);
-void            mouseintr(void);
+void            mouseintr(uint);
 
 // picirq.c
 void            picenable(int);
