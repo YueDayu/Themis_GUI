@@ -10,9 +10,11 @@ static struct {
   int x_sgn, y_sgn, x_mov, y_mov;
   int l_btn, r_btn, m_btn;
   int x_overflow, y_overflow;
+  uint tick;
 } packet;
 static int count;
 static int recovery;
+static int lastbtn, lastdowntick, lastclicktick;
 
 void
 mouse_wait(uchar type)
@@ -85,6 +87,7 @@ mouseinit(void)
     ioapicenable(IRQ_MOUSE, 0);
     
     count = 0;
+    lastclicktick = lastdowntick = -1000;
 }
 
 void
@@ -113,18 +116,31 @@ genMouseMessage()
   {
     msg.msg_type = M_MOUSE_DOWN;
     msg.params[0] = btns;
+    lastdowntick = packet.tick;
+  }
+  else if (packet.tick - lastdowntick < 30)
+  {
+    if (lastbtn & 1) msg.msg_type = M_MOUSE_LEFT_CLICK;
+    else msg.msg_type = M_MOUSE_RIGHT_CLICK;
+    if (packet.tick - lastclicktick < 100)
+    {
+      msg.msg_type = M_MOUSE_DBCLICK;
+      lastclicktick = -1000;
+    }
+    else lastclicktick = packet.tick;
   }
   else
   {
     msg.msg_type = M_MOUSE_UP;
     msg.params[0] = btns;
   }
+  lastbtn = btns;
   handleMessage(&msg);
 }
 
 
 void
-mouseintr(void)
+mouseintr(uint tick)
 {
   acquire(&mouselock);
   int state;
@@ -162,7 +178,8 @@ mouseintr(void)
                  
         case 2:  packet.x_mov = data;
                  break;
-        case 3:  packet.y_mov = data;  
+        case 3:  packet.y_mov = data;
+                 packet.tick = tick;
                  break;
         default: count=0;    break;
     }
