@@ -211,6 +211,13 @@ void focusWindow(int handler)
 	    }
 	    drawMouse(screen, 0, wm_mouse_pos.x, wm_mouse_pos.y);
 	}
+	else
+	{
+	    struct RGBA gray;
+	    gray.A = 255;
+	    gray.R = gray.G = gray.B = 140;
+	    drawWindowBar(screen, &windowlist[focus].wnd, gray);
+	}
 
 	focus = handler;
 }
