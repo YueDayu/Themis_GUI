@@ -16,6 +16,7 @@ void drawTextAreaWidget(window *win, int index);
 void drawFileListWidget(window *win, int index);
 
 void fileListDoubleClickHandler(window *win, int index, message *msg);
+void textAreaKeyDownHandler(window *win, int index, message *msg);
 
 char file_image_path[FILE_TYPE_NUM][MAX_SHORT_STRLEN] = {"explorer.bmp",
                                                          "txt.bmp",
@@ -172,6 +173,7 @@ int addTextAreaWidget(window *win, RGBA c, char *text, int x, int y, int w, int 
     t->begin_line = 0;
     strcpy(t->text, text);
     // TODO: add default handler
+    t->onKeyDown = textAreaKeyDownHandler;
     Widget *widget = &win->widgets[win->widget_number];
     widget->paint = drawTextAreaWidget;
     widget->context.textArea = t;
@@ -508,6 +510,40 @@ void drawInputWidget(window *win, int index) {
 }
 
 void drawTextAreaWidget(window *win, int index) {
+    Widget *w = &(win->widgets[index]);
+
+    RGB white;
+    white.R = 255;
+    white.G = 255;
+    white.B = 255;
+    draw24FillRect(win, white, w->size.x, w->size.y, w->size.width, w->size.height);
+
+    int max_num = w->size.width / CHARACTER_WIDTH;
+    int max_line = w->size.height / CHARACTER_HEIGHT;
+
+    int current_x = 0;
+    int current_y = 0;
+
+    int i;
+    for (i = 0; w->context.textArea->text[i]; i++) {
+        if (w->context.textArea->text[i] == '\n' || w->context.textArea->text[i] == '\r') {
+            current_y ++;
+            current_x = 0;
+            if (current_y >= max_line) {
+                break;
+            }
+        }
+        drawCharacter(win, w->size.x + current_x * CHARACTER_WIDTH, w->size.y + current_y * CHARACTER_HEIGHT,
+                    w->context.textArea->text[i], w->context.textArea->color);
+        current_x++;
+        if (current_x >= max_num) {
+            current_x = 0;
+            current_y ++;
+            if (current_y >= max_line) {
+                break;
+            }
+        }
+    }
 }
 
 void drawFileListWidget(window *win, int index) {
@@ -594,6 +630,30 @@ void UI_suffix(char *t, char *s)
     strcpy(t, s);
 }
 
+void textAreaKeyDownHandler(window *win, int index, message *msg) {
+    Widget *w = &(win->widgets[index]);
+
+    int len = strlen(w->context.textArea->text);
+    if (msg->params[0] == '\b') {
+        w->context.textArea->text[len - 1] = '\0';
+        drawTextAreaWidget(win, index);
+        updatePartWindow(win, w->size.x, w->size.y, w->size.width, w->size.height);
+        return;
+    }
+    if (len > 500) return;
+    if (msg->params[0] >= 'a' && msg->params[0] <= 'z' && (msg->params[1] & 1) == 1) {
+        w->context.textArea->text[len] = msg->params[0] - 32;
+        w->context.textArea->text[len + 1] = '\0';
+        drawTextAreaWidget(win, index);
+        updatePartWindow(win, w->size.x, w->size.y, w->size.width, w->size.height);
+        return;
+    }
+    w->context.textArea->text[len] = msg->params[0];
+    w->context.textArea->text[len + 1] = '\0';
+    drawTextAreaWidget(win, index);
+    updatePartWindow(win, w->size.x, w->size.y, w->size.width, w->size.height);
+}
+
 void fileListDoubleClickHandler(window *win, int index, message *msg) {
     Widget *w = &(win->widgets[index]);
     if (w->context.fileList->direction == 0) { // on the desktop
@@ -619,6 +679,13 @@ void fileListDoubleClickHandler(window *win, int index, message *msg) {
                     exec(argv2[0], argv2);
                     exit();
                 }
+            } else if (strcmp(t, "txt") == 0) {
+                if (fork() == 0)
+                {
+                    char *argv2[] = { "Editor", p->text, 0};
+                    exec(argv2[0], argv2);
+                    exit();
+                }
             }
         }
     }
@@ -637,6 +704,22 @@ void mainLoop(window *win) {
                 for (i = 0; i < win->widget_number; i++) {
                     if (win->widgets[i].type == FILE_LIST) {
                         win->widgets[i].context.fileList->onDoubleClick(win, i, &msg);
+                        break;
+                    }
+                }
+            } else if (msg.msg_type == M_KEY_DOWN) {
+                int i;
+                for (i = 0; i < win->widget_number; i++) {
+                    if (win->widgets[i].type == TEXT_AREA) {
+                        win->widgets[i].context.textArea->onKeyDown(win, i, &msg);
+                        break;
+                    }
+                }
+            } else if (msg.msg_type == M_MOUSE_LEFT_CLICK) {
+                int i;
+                for (i = 0; i < win->widget_number; i++) {
+                    if (win->widgets[i].type == BUTTON) {
+                        win->widgets[i].context.button->onLeftClick(win, i, &msg);
                         break;
                     }
                 }

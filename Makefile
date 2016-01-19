@@ -164,6 +164,7 @@ UPROGS=\
 	_init\
 	_desktop\
 	_image_viewer\
+	_Editor\
 
 fs.img: mkfs README readme.txt desktop.bmp explorer.bmp txt.bmp pic.bmp exec.bmp folder.bmp unknow.bmp $(UPROGS)
 	./mkfs fs.img README readme.txt desktop.bmp explorer.bmp txt.bmp pic.bmp exec.bmp folder.bmp unknow.bmp $(UPROGS)
