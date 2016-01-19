@@ -191,7 +191,7 @@ void draw24ImagePart(RGB *buf, RGB *img, int x, int y, int width, int height, in
     	if (y + i < 0) continue;
     	if (y + i >= SCREEN_HEIGHT) break;
         t = buf + (y + i) * SCREEN_WIDTH + minj + x;
-        o = img + (i + suby) * width + subx;
+        o = img + (i + suby) * width + subx + minj;
         memmove(t, o, (maxj - minj) * 3);
     }
     releaseGUILock(buf);
