@@ -478,11 +478,17 @@ void wmUpdateWindow(int handler, int xmin, int ymin, int width, int height)
     {
         int wndwidth = wnd->contents.xmax - wnd->contents.xmin;
         int wndheight = wnd->contents.ymax - wnd->contents.ymin;
+		switchuvm(windowlist[handler].proc);
         draw24ImagePart(screen_buf1, windowlist[handler].wnd.content_buf, 
                         updrect.xmin, updrect.ymin, wndwidth, wndheight,
                         max(xmin, 0), max(ymin, 0), updrect.xmax - updrect.xmin, updrect.ymax - updrect.ymin);
         clearRectByCoord(screen, screen_buf1, updrect.xmin, updrect.ymin, updrect.xmax, updrect.ymax);
         drawMouse(screen, 0, wm_mouse_pos.x, wm_mouse_pos.y);
+		if (proc == 0) {
+			switchkvm();
+		} else {
+			switchuvm(proc);
+		}
         release(&wmlock);
         return;
     }
@@ -561,6 +567,7 @@ void wmUpdateWindow(int handler, int xmin, int ymin, int width, int height)
         {
             cursubrect.xmin = xrev[i]; cursubrect.xmax = xrev[i + 1];
             cursubrect.ymin = yrev[j]; cursubrect.ymax = yrev[j + 1];
+			switchuvm(windowlist[handler].proc);
             if (subrects[i][j] <= 0)
             {
                 draw24ImagePart(screen_buf2, wnd->content_buf, xrev[i], yrev[j], wndwidth, wndheight,
@@ -573,6 +580,11 @@ void wmUpdateWindow(int handler, int xmin, int ymin, int width, int height)
                 draw24ImagePart(screen_buf2, wnd->content_buf, xrev[i], yrev[j], wndwidth, wndheight,
                                 xrev[i] - wnd->contents.xmin, yrev[j] - wnd->contents.ymin, xrev[i+1]-xrev[i], yrev[j+1]-yrev[j]);
             }
+			if (proc == 0) {
+				switchkvm();
+			} else {
+				switchuvm(proc);
+			}
         }
     
     drawMouse(screen, 0, wm_mouse_pos.x, wm_mouse_pos.y);
