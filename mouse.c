@@ -90,6 +90,14 @@ mouseinit(void)
     lastclicktick = lastdowntick = -1000;
 }
 
+void genMouseUpMessage(int btns)
+{
+  message msg;
+  msg.msg_type = M_MOUSE_UP;
+  msg.params[0] = btns;
+  handleMessage(&msg);
+}
+
 void
 genMouseMessage()
 {
@@ -111,6 +119,8 @@ genMouseMessage()
     msg.params[0] = packet.x_mov;
     msg.params[1] = packet.y_mov;
     msg.params[2] = btns;
+    lastdowntick = lastclicktick = -1000;
+    if (btns != lastbtn) genMouseUpMessage(btns);
   }
   else if (btns)
   {
@@ -122,7 +132,7 @@ genMouseMessage()
   {
     if (lastbtn & 1) msg.msg_type = M_MOUSE_LEFT_CLICK;
     else msg.msg_type = M_MOUSE_RIGHT_CLICK;
-    if (packet.tick - lastclicktick < 100)
+    if (packet.tick - lastclicktick < 60)
     {
       msg.msg_type = M_MOUSE_DBCLICK;
       lastclicktick = -1000;
@@ -131,8 +141,7 @@ genMouseMessage()
   }
   else
   {
-    msg.msg_type = M_MOUSE_UP;
-    msg.params[0] = btns;
+    genMouseUpMessage(btns);
   }
   lastbtn = btns;
   handleMessage(&msg);
