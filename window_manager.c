@@ -201,7 +201,7 @@ void focusWindow(int handler)
 	    for (p = q; p != windowlisthead; p = windowlist[p].prev) drawWindow(2, p, 0);
 	    clearRect(screen_buf1, screen_buf2, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 	    drawWindow(1, windowlisthead, 0);
-	    if (focus != desktopHandler)
+	    if (focus != desktopHandler && focus != -1)
 	    {
 	        clearRectByCoord(screen, screen_buf1,
 	                         min(windowlist[focus].wnd.titlebar.xmin, windowlist[handler].wnd.titlebar.xmin),
@@ -291,7 +291,7 @@ void destroyWindow(int handler)
     //clear window on screen
     window *wnd = &windowlist[handler].wnd;
     clearRectByCoord(screen_buf1, screen_buf2, wnd->titlebar.xmin, wnd->titlebar.ymin, wnd->titlebar.xmax, wnd->contents.ymax + 3);
-    clearRectByCoord(screen, screen_buf2, wnd->titlebar.xmin, wnd->titlebar.ymin, wnd->titlebar.xmax, wnd->contents.ymax + 3);
+    clearRectByCoord(screen, screen_buf1, wnd->titlebar.xmin, wnd->titlebar.ymin, wnd->titlebar.xmax, wnd->contents.ymax + 3);
     drawMouse(screen, 0, wm_mouse_pos.x, wm_mouse_pos.y);
     
     if (wnd->alwaysfront) --frontcnt;
@@ -300,6 +300,7 @@ void destroyWindow(int handler)
     int newfocus = windowlist[handler].next;
     removeFromList(&windowlisthead, handler);
     addToListHead(&emptyhead, handler);
+    focus = -1;
     if (newfocus != -1) focusWindow(newfocus);
 
     release(&wmlock);
