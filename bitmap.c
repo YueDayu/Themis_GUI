@@ -66,11 +66,21 @@ int read24BitmapFile(char *fileName, RGB *result, int *height, int *width) {
     *height = bmpInfoHeader.biHeight;
     int column = bmpInfoHeader.biWidth;
     int row = bmpInfoHeader.biHeight;
+    int bits = bmpInfoHeader.biBitCount;
     char tmpBytes[3];
     int rowBytes = column * 3;
     char *buf = (char *) result;
     for (i = 0; i < row; i++) {
-        read(bmpFile, buf + i * rowBytes, rowBytes);
+        if (bits == 24) {
+            read(bmpFile, buf + i * rowBytes, rowBytes);
+        } else {
+            int j = 0;
+            for (j = 0; j < column; j++) {
+                read(bmpFile, buf + i * column * 3 + j * sizeof(RGB), 3);
+                read(bmpFile, tmpBytes, 1);
+            }
+        }
+
         if (rowBytes % 4 > 0) {
             read(bmpFile, tmpBytes, 4 - (rowBytes % 4));
         }

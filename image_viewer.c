@@ -8,39 +8,21 @@
 RGB image[64 * 64];
 
 int main(int argc, char *argv[]) {
-    int h, w;
-    window desktop;
-    desktop.width = MAX_WIDTH;
-    desktop.height = MAX_HEIGHT;
-    UI_createWindow(&desktop, "", 0);
-    int res = read24BitmapFile("desktop.bmp", image, &h, &w);
-    printf(1, "res: %d\n", res);
-//    RGBA color;
-//    color.A = 155;
-//    color.R = 155;
-//    color.G = 155;
-//    color.B = 255;
+//    int h, w;
+    window viewer;
+    viewer.width = 400;
+    viewer.height = 300;
+    printf(1, "Hello! %s\n", argv[1]);
+    UI_createWindow(&viewer, "Image Viewer", 0);
+//    if (argc > 1) {
+//        int res = read24BitmapFile(argv[1], image, &h, &w);
+//        if (res == 0) {
+//            addImageWidget(&viewer, image, (viewer.width - w) / 2, (viewer.height - h) / 2, w, h);
+//        }
+//    }
 
-    addImageWidget(&desktop, image, 0, 0, MAX_WIDTH, MAX_HEIGHT);
-//    addLabelWidget(&desktop, color, "Hello World", 100, 100, 100, 20);
-    addFileListWidget(&desktop, "/", 0, 0, 0, MAX_WIDTH, MAX_HEIGHT - 25);
-
-    window testwindow;
-    testwindow.width = 300;
-    testwindow.height = 200;
-    UI_createWindow(&testwindow, "test window", 0);
-
-    window testwindow2;
-    testwindow2.width = 600;
-    testwindow2.height = 100;
-    UI_createWindow(&testwindow2, "test window 2", 0);
-
-
-    drawAllWidget(&desktop);
-
-//    mainLoop(&desktop);
-
-
-    while(1);;
-
+//    drawAllWidget(&viewer);
+//    mainLoop(&viewer);
+    while (1);;
+    return 0;
 }

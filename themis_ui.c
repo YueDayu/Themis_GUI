@@ -34,6 +34,7 @@ void UI_createWindow(window *win, const char* title, int alwaysfront) {
         win->handler = -1;
         return;
     }
+    memset(win->window_buf, 255, win->height * win->width * 3);
     createwindow(win->width, win->height, title, win->window_buf, alwaysfront);
 }
 
@@ -572,6 +573,27 @@ void drawAllWidget(window *win) {
     updatewindow(win->handler, 0, 0, win->width, win->height);
 }
 
+void UI_suffix(char *t, char *s)
+{
+    int point = 0;
+
+    while (*s != 0)
+    {
+        if (*s == '.')
+            point = 1;
+        s++;
+    }
+    if (point == 0)
+    {
+        strcpy(t, "");
+        return;
+    }
+    while (*s != '.')
+        s--;
+    s++;
+    strcpy(t, s);
+}
+
 void fileListDoubleClickHandler(window *win, int index, message *msg) {
     Widget *w = &(win->widgets[index]);
     if (w->context.fileList->direction == 0) { // on the desktop
@@ -588,7 +610,16 @@ void fileListDoubleClickHandler(window *win, int index, message *msg) {
             for (i = 0; i < calcu_index; i++) {
                 p = p->next;
             }
-            printf(1, "%s\n", p->text);
+            char t[20];
+            UI_suffix(t, p->text);
+            if (strcmp(t, "bmp") == 0) {
+                if (fork() == 0)
+                {
+                    char *argv2[] = { "image_viewer", p->text, 0};
+                    exec(argv2[0], argv2);
+//                    exit();
+                }
+            }
         }
     }
 }
@@ -597,7 +628,11 @@ void mainLoop(window *win) {
     message msg;
     while (1) {
         if (getmessage(win->handler, &msg)) {
-            if (msg.msg_type == M_MOUSE_DOWN) {
+            if (msg.msg_type == WM_WINDOW_CLOSE) {
+                UI_destroyWindow(win);
+                break;
+            }
+            if (msg.msg_type == M_MOUSE_DBCLICK) {
                 int i;
                 for (i = 0; i < win->widget_number; i++) {
                     if (win->widgets[i].type == FILE_LIST) {
