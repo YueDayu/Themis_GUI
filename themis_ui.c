@@ -707,7 +707,7 @@ void fileListDoubleClickHandler(window *win, int index, message *msg) {
                 exec(argv2[0], argv2);
                 exit();
             }
-        } else if (strcmp(t, "") == 0) {
+        } else if (strcmp(t, "txt") == 0) {
             if (fork() == 0)
             {
                 char *argv2[] = { "Editor", p->text, 0};
