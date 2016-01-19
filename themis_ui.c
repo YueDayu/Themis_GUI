@@ -35,7 +35,7 @@ void UI_createWindow(window *win, const char* title, int alwaysfront) {
         return;
     }
     memset(win->window_buf, 255, win->height * win->width * 3);
-    createwindow(win->width, win->height, title, win->window_buf, alwaysfront);
+    win->handler = createwindow(win->width, win->height, title, win->window_buf, alwaysfront);
 }
 
 void freeWidget(Widget *widget) {
@@ -617,7 +617,7 @@ void fileListDoubleClickHandler(window *win, int index, message *msg) {
                 {
                     char *argv2[] = { "image_viewer", p->text, 0};
                     exec(argv2[0], argv2);
-//                    exit();
+                    exit();
                 }
             }
         }
