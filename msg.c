@@ -25,7 +25,6 @@ int handleMessage(message* msg)
 		cprintf("MOUSE UP: btn=%x\n", msg->params[0]);
 	}*/
 	
-	cprintf("message %d\n", msg->msg_type);
 	wmHandleMessage(msg);
 	
 	return 0;
